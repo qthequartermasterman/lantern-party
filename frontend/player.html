@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Lantern Party – Player 🏮</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1a1020;
+      --surface: #2a1f35;
+      --surface2: #3a2d4a;
+      --primary: #f5a623;
+      --primary-dark: #d4891a;
+      --accent: #e8645a;
+      --green: #52c97a;
+      --text: #f0e8ff;
+      --text-muted: #9080b0;
+      --radius: 14px;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── Top bar ── */
+    #top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.7rem 1.2rem;
+      background: var(--surface);
+      border-bottom: 1px solid rgba(245,166,35,0.15);
+      flex-shrink: 0;
+    }
+    #top-bar .brand { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+    #top-timer {
+      font-size: 1.2rem;
+      font-weight: 800;
+    }
+    #top-timer.urgent { color: var(--accent); }
+
+    /* ── Main ── */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 1.5rem 1rem 2rem;
+      overflow-y: auto;
+    }
+
+    /* ── Screens ── */
+    .screen { width: 100%; max-width: 480px; display: none; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* ── Join ── */
+    #join-screen {
+      align-items: center;
+      text-align: center;
+      padding-top: 1rem;
+    }
+    #join-screen .logo { font-size: 3.5rem; margin-bottom: 0.5rem; }
+    #join-screen h1 { font-size: 2rem; font-weight: 900; color: var(--primary); margin-bottom: 0.3rem; }
+    #join-screen .code-hint {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.35rem;
+      align-self: flex-start;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1.5px solid rgba(245,166,35,0.2);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 1.05rem;
+      padding: 0.7rem 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    input[type="text"]:focus, textarea:focus { border-color: var(--primary); }
+    input[type="text"]::placeholder, textarea::placeholder { color: var(--text-muted); }
+
+    textarea {
+      resize: none;
+      height: 100px;
+      margin-bottom: 0.8rem;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.9rem;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+      margin-bottom: 0.6rem;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #1a1020;
+    }
+    .btn-vote {
+      background: var(--surface2);
+      color: var(--text);
+      border: 2px solid rgba(255,255,255,0.1);
+      text-align: left;
+      padding: 1rem 1.2rem;
+      border-radius: 12px;
+    }
+    .btn-vote:active, .btn-vote.selected {
+      border-color: var(--primary);
+      box-shadow: 0 0 16px rgba(245,166,35,0.3);
+    }
+
+    .error-msg {
+      background: rgba(232,100,90,0.15);
+      border: 1px solid rgba(232,100,90,0.4);
+      border-radius: 8px;
+      color: #f08080;
+      font-size: 0.9rem;
+      padding: 0.6rem 0.9rem;
+      margin-top: 0.6rem;
+      display: none;
+    }
+    .error-msg.visible { display: block; }
+
+    /* Lobby */
+    #lobby-screen {
+      align-items: center;
+      text-align: center;
+    }
+    .big-code {
+      font-size: 3.5rem;
+      font-weight: 900;
+      letter-spacing: 0.2em;
+      color: var(--primary);
+      margin: 1rem 0 0.3rem;
+    }
+    .waiting-text {
+      color: var(--text-muted);
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    #lobby-players {
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .player-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+    }
+    .ready-pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+    }
+    .ready-pill.yes { background: rgba(82,201,122,0.2); color: var(--green); }
+    .ready-pill.no  { background: rgba(144,128,176,0.2); color: var(--text-muted); }
+    .ready-btn {
+      display: block;
+      width: 100%;
+      padding: 0.8rem;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      background: var(--surface2);
+      color: var(--text);
+      border: 1.5px solid rgba(245,166,35,0.3);
+      transition: background 0.2s;
+    }
+    .ready-btn.is-ready {
+      background: rgba(82,201,122,0.15);
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    /* Answering */
+    #answering-screen h2 {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .prompt-block {
+      background: var(--surface);
+      border: 1px solid rgba(245,166,35,0.2);
+      border-radius: var(--radius);
+      padding: 1.2rem;
+      margin-bottom: 1.2rem;
+    }
+    .prompt-block .prompt-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.6rem;
+    }
+    .prompt-block .prompt-q {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+    .submitted-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: rgba(82,201,122,0.15);
+      border: 1px solid rgba(82,201,122,0.35);
+      border-radius: 20px;
+      color: var(--green);
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 0.3rem 0.8rem;
+    }
+
+    /* Voting */
+    #voting-screen h2 {
+      font-size: 1rem;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+      font-weight: 600;
+    }
+    .vote-prompt {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+      text-align: center;
+    }
+    .vote-option {
+      background: var(--surface);
+      border: 2px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.2rem;
+      margin-bottom: 1rem;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      font-size: 1.05rem;
+    }
+    .vote-option:active, .vote-option.selected {
+      border-color: var(--primary);
+      box-shadow: 0 0 16px rgba(245,166,35,0.3);
+    }
+    .vote-option .option-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    /* Waiting */
+    #waiting-screen {
+      align-items: center;
+      text-align: center;
+    }
+    #waiting-screen .wait-icon { font-size: 3rem; margin-bottom: 1rem; }
+    #waiting-screen h2 { font-size: 1.4rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+    #waiting-screen p { color: var(--text-muted); font-size: 0.9rem; }
+
+    /* Final answering */
+    #final-answering-screen {
+      align-items: center;
+    }
+    .final-badge {
+      display: inline-block;
+      background: rgba(232,100,90,0.15);
+      border: 1px solid rgba(232,100,90,0.3);
+      color: var(--accent);
+      border-radius: 20px;
+      padding: 0.3rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    #final-answering-screen .final-q {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 1.2rem;
+      text-align: center;
+    }
+
+    /* Final voting */
+    #final-voting-screen h2 {
+      font-size: 1rem;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+      font-weight: 600;
+    }
+    .final-vote-hint {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    .votes-remaining {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .final-vote-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.8rem;
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 0.8rem;
+    }
+    .final-vote-row .ans-info { flex: 1; }
+    .final-vote-row .player-tag {
+      font-size: 0.8rem;
+      color: var(--primary);
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+    .final-vote-row .ans-text { font-size: 0.95rem; color: var(--text); }
+    .vote-stepper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .vote-stepper button {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid rgba(245,166,35,0.4);
+      background: var(--surface2);
+      color: var(--primary);
+      font-size: 1.2rem;
+      font-weight: 900;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .vote-stepper .vote-num {
+      min-width: 28px;
+      text-align: center;
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: var(--primary);
+    }
+
+    /* Results wait */
+    #results-wait-screen {
+      align-items: center;
+      text-align: center;
+    }
+
+    /* Score display */
+    #score-display {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      background: var(--surface);
+      border: 1px solid rgba(245,166,35,0.2);
+      border-radius: 10px;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      display: none;
+    }
+    #score-display span { color: var(--primary); font-weight: 800; }
+  </style>
+</head>
+<body>
+
+<div id="top-bar">
+  <div class="brand">🏮 Lantern Party</div>
+  <div id="top-timer"></div>
+</div>
+
+<div id="main">
+
+  <!-- Join -->
+  <div id="join-screen" class="screen active">
+    <div class="logo">🏮</div>
+    <h1>Lantern Party</h1>
+    <p class="code-hint" id="join-code-hint">Joining party…</p>
+    <label for="name-input">Your Name</label>
+    <input type="text" id="name-input" placeholder="e.g. FunnyPerson" maxlength="20" autocomplete="off" style="margin-bottom:1rem;" />
+    <button class="btn btn-primary" id="name-submit-btn">Join Game!</button>
+    <div class="error-msg" id="join-error"></div>
+  </div>
+
+  <!-- Lobby -->
+  <div id="lobby-screen" class="screen">
+    <p style="color:var(--text-muted);font-size:0.9rem;">Party code</p>
+    <div class="big-code" id="lobby-code-display">----</div>
+    <p class="waiting-text">Waiting for the host to start…</p>
+    <div id="lobby-players"></div>
+    <button class="ready-btn" id="ready-btn">👍 Mark me as Ready</button>
+  </div>
+
+  <!-- Answering -->
+  <div id="answering-screen" class="screen">
+    <h2 id="round-hint">Round 1 – Answer your prompts!</h2>
+    <div id="prompts-container"></div>
+  </div>
+
+  <!-- Voting -->
+  <div id="voting-screen" class="screen">
+    <h2>Vote for your favourite answer!</h2>
+    <div class="vote-prompt" id="vote-prompt-text"></div>
+    <div id="vote-options"></div>
+    <div class="error-msg" id="vote-error"></div>
+  </div>
+
+  <!-- Waiting (submitted answer, watching reveal) -->
+  <div id="waiting-screen" class="screen">
+    <div class="wait-icon">👀</div>
+    <h2>Answers are in!</h2>
+    <p>Watch the big screen for the reveal…</p>
+  </div>
+
+  <!-- Final answering -->
+  <div id="final-answering-screen" class="screen">
+    <div class="final-badge">⚡ Final Round</div>
+    <p class="final-q" id="final-q-text"></p>
+    <textarea id="final-answer-input" placeholder="Your funniest answer…"></textarea>
+    <button class="btn btn-primary" id="final-submit-btn">Submit Answer</button>
+    <div class="error-msg" id="final-error"></div>
+  </div>
+
+  <!-- Final voting -->
+  <div id="final-voting-screen" class="screen">
+    <h2 style="text-align:center;margin-bottom:0.3rem;">Distribute your 3 votes!</h2>
+    <p class="final-vote-hint">You can stack all on one or split any way you like.</p>
+    <div class="votes-remaining" id="votes-remaining">3 votes left</div>
+    <div id="final-vote-rows"></div>
+    <button class="btn btn-primary" id="final-vote-submit" disabled>Submit Votes</button>
+    <div class="error-msg" id="final-vote-error"></div>
+  </div>
+
+  <!-- Waiting for results -->
+  <div id="results-wait-screen" class="screen">
+    <div class="wait-icon">🏆</div>
+    <h2 style="color:var(--text-muted);">Results coming…</h2>
+    <p style="color:var(--text-muted);">Check the big screen!</p>
+  </div>
+
+</div><!-- /main -->
+
+<div id="score-display">Your score: <span id="my-score">0</span></div>
+
+<script>
+  // ── Init ──────────────────────────────────────────────────────────────
+  const partyCode = location.pathname.split('/').pop().toUpperCase();
+  let playerId = sessionStorage.getItem('playerId');
+  if (!playerId) {
+    playerId = crypto.randomUUID();
+    sessionStorage.setItem('playerId', playerId);
+  }
+
+  // Pre-fill name if came from index page
+  const savedName = sessionStorage.getItem('playerName');
+  if (savedName) document.getElementById('name-input').value = savedName;
+
+  document.getElementById('join-code-hint').textContent = `Party code: ${partyCode}`;
+  document.getElementById('lobby-code-display').textContent = partyCode;
+
+  const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/${partyCode}/player/${playerId}`;
+  let ws;
+  let isReady = false;
+  let myName = savedName || '';
+  let hasJoined = false;
+
+  // ── State ─────────────────────────────────────────────────────────────
+  let currentPhase = '';
+  let currentMatchup = null; // for voting screen
+  let finalAnswers = []; // for final voting
+  let finalVoteAlloc = {}; // player_id → votes
+
+  // ── WebSocket ─────────────────────────────────────────────────────────
+  function connect() {
+    ws = new WebSocket(wsUrl);
+    ws.onopen = () => {
+      // If the player already provided their name (e.g. via the index page),
+      // auto-submit the join so they don't have to enter it a second time.
+      if (myName && !hasJoined && nameSubmitBtn) {
+        nameSubmitBtn.click();
+      }
+    };
+    ws.onclose = () => { setTimeout(connect, 2000); };
+    ws.onmessage = (e) => {
+      try { handleMsg(JSON.parse(e.data)); } catch(_) {}
+    };
+  }
+  connect();
+
+  function send(type, data = {}) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type, data }));
+    }
+  }
+
+  // ── Screen management ─────────────────────────────────────────────────
+  const screens = {
+    join:           document.getElementById('join-screen'),
+    lobby:          document.getElementById('lobby-screen'),
+    answering:      document.getElementById('answering-screen'),
+    voting:         document.getElementById('voting-screen'),
+    waiting:        document.getElementById('waiting-screen'),
+    final_answering:document.getElementById('final-answering-screen'),
+    final_voting:   document.getElementById('final-voting-screen'),
+    results_wait:   document.getElementById('results-wait-screen'),
+  };
+
+  function showScreen(name) {
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    if (screens[name]) screens[name].classList.add('active');
+  }
+
+  // ── Message handler ───────────────────────────────────────────────────
+  function handleMsg(msg) {
+    const { type, data } = msg;
+
+    if (type === 'error') {
+      showError(data.message);
+      return;
+    }
+
+    if (type === 'lobby_state') {
+      currentPhase = 'lobby';
+      // Confirm join: if our player ID now appears in the player list, the server
+      // accepted the join request.  Only then flip hasJoined and show the lobby.
+      const playerList = data.players || [];
+      if (!hasJoined && playerList.some(p => p.id === playerId)) {
+        hasJoined = true;
+        nameSubmitBtn.disabled = true;
+        joinError.classList.remove('visible');
+      }
+      if (hasJoined) {
+        showScreen('lobby');
+        renderLobbyPlayers(playerList);
+      }
+      // If game is already playing on reconnect, game_state will follow
+      if (data.state !== 'lobby') { /* let game_state handle */ }
+    }
+
+    if (type === 'player_joined' || type === 'player_ready') {
+      // Handled via lobby_state update
+    }
+
+    if (type === 'game_state') {
+      renderPlayerGameState(data);
+    }
+
+    if (type === 'timer') {
+      updateTimer(data.seconds_remaining);
+    }
+
+    if (type === 'prompt') {
+      // Direct prompt assignment
+      renderAnsweringPrompts(data.prompts || []);
+    }
+
+    if (type === 'matchup_start') {
+      renderVotingScreen(data);
+    }
+
+    if (type === 'vote_result') {
+      // Show brief waiting screen
+      showScreen('waiting');
+    }
+
+    if (type === 'scores') {
+      showScreen('results_wait');
+    }
+
+    if (type === 'final_prompt') {
+      currentPhase = 'final_answering';
+      document.getElementById('final-q-text').textContent = data.prompt_text || '';
+      document.getElementById('final-answer-input').value = '';
+      document.getElementById('final-submit-btn').disabled = false;
+      document.getElementById('final-error').classList.remove('visible');
+      showScreen('final_answering');
+    }
+
+    if (type === 'final_reveal') {
+      showScreen('results_wait');
+    }
+
+    if (type === 'game_over') {
+      renderGameOver(data);
+    }
+  }
+
+  // ── Game state dispatcher ─────────────────────────────────────────────
+  function renderPlayerGameState(data) {
+    currentPhase = data.phase || '';
+
+    // Update score display
+    if (data.scores) {
+      const me = (data.scores || []).find(s => s.id === playerId);
+      if (me) {
+        document.getElementById('my-score').textContent = me.score;
+        document.getElementById('score-display').style.display = 'block';
+      }
+    }
+
+    if (data.phase === 'lobby') {
+      if (hasJoined) showScreen('lobby');
+      return;
+    }
+
+    if (data.phase === 'answering') {
+      if (data.prompts) {
+        renderAnsweringPrompts(data.prompts, data.submitted || []);
+      }
+      return;
+    }
+
+    if (data.phase === 'revealing') {
+      if (data.matchup) {
+        currentMatchup = data.matchup;
+        if (data.can_vote) {
+          renderVotingScreen(data.matchup);
+        } else if (!data.can_vote && !data.already_voted) {
+          // You're an answerer – watch screen
+          showScreen('waiting');
+        } else {
+          // Already voted
+          showScreen('waiting');
+        }
+      }
+      return;
+    }
+
+    if (data.phase === 'final_answering') {
+      if (data.submitted_final) {
+        showScreen('waiting');
+      } else {
+        document.getElementById('final-q-text').textContent = data.final_prompt || '';
+        showScreen('final_answering');
+      }
+      return;
+    }
+
+    if (data.phase === 'final_revealing') {
+      if (data.already_voted_final) {
+        showScreen('results_wait');
+      } else {
+        renderFinalVotingScreen(data);
+      }
+      return;
+    }
+
+    if (data.phase === 'game_over') {
+      renderGameOver(data);
+      return;
+    }
+  }
+
+  // ── Join ──────────────────────────────────────────────────────────────
+  const nameInput = document.getElementById('name-input');
+  const nameSubmitBtn = document.getElementById('name-submit-btn');
+  const joinError = document.getElementById('join-error');
+
+  nameSubmitBtn.addEventListener('click', () => {
+    const name = nameInput.value.trim();
+    if (!name) {
+      joinError.textContent = 'Please enter your name.';
+      joinError.classList.add('visible');
+      return;
+    }
+    myName = name;
+    sessionStorage.setItem('playerName', name);
+    send('join', { name });
+    // hasJoined and button-disabled state are set in the lobby_state handler
+    // once the server confirms the player was added successfully.
+    joinError.classList.remove('visible');
+  });
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') nameSubmitBtn.click(); });
+
+  function showError(msg) {
+    // Show on whatever is relevant
+    joinError.textContent = msg;
+    joinError.classList.add('visible');
+    if (!hasJoined) {
+      // Join was rejected; re-enable the button so the player can try again.
+      nameSubmitBtn.disabled = false;
+    } else {
+      // Show subtle error toast for in-game errors
+      console.warn('Server error:', msg);
+    }
+  }
+
+  // ── Lobby ─────────────────────────────────────────────────────────────
+  const readyBtn = document.getElementById('ready-btn');
+  readyBtn.addEventListener('click', () => {
+    isReady = !isReady;
+    send('ready', { ready: isReady });
+    readyBtn.className = 'ready-btn' + (isReady ? ' is-ready' : '');
+    readyBtn.textContent = isReady ? '✓ I\'m Ready!' : '👍 Mark me as Ready';
+  });
+
+  function renderLobbyPlayers(players) {
+    const container = document.getElementById('lobby-players');
+    container.innerHTML = '';
+    players.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'player-row';
+      const pill = `<span class="ready-pill ${p.ready ? 'yes' : 'no'}">${p.ready ? '✓ Ready' : 'Waiting'}</span>`;
+      row.innerHTML = `<span>${escHtml(p.name)}${p.id === playerId ? ' (you)' : ''}</span>${pill}`;
+      container.appendChild(row);
+    });
+  }
+
+  // ── Answering ─────────────────────────────────────────────────────────
+  function renderAnsweringPrompts(prompts, submitted = []) {
+    const container = document.getElementById('prompts-container');
+    container.innerHTML = '';
+    showScreen('answering');
+
+    prompts.forEach((p, i) => {
+      const block = document.createElement('div');
+      block.className = 'prompt-block';
+      const isDone = submitted.includes(p.prompt_index);
+      block.innerHTML = `
+        <div class="prompt-label">Prompt ${i + 1}</div>
+        <div class="prompt-q">${escHtml(p.prompt_text)}</div>
+        ${isDone
+          ? `<div class="submitted-badge">✓ Answer submitted</div>`
+          : `<textarea class="answer-ta" data-idx="${p.prompt_index}" placeholder="Your funniest answer…" maxlength="200" rows="3"></textarea>
+             <button class="btn btn-primary submit-ans-btn" data-idx="${p.prompt_index}" style="margin-top:0.5rem;">Submit</button>`
+        }`;
+      container.appendChild(block);
+    });
+
+    container.querySelectorAll('.submit-ans-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-idx'));
+        const ta = container.querySelector(`.answer-ta[data-idx="${idx}"]`);
+        const answer = ta ? ta.value.trim() : '';
+        if (!answer) { ta && (ta.style.borderColor = 'var(--accent)'); return; }
+        send('submit_answer', { prompt_index: idx, answer });
+        // Optimistically disable
+        if (ta) ta.disabled = true;
+        btn.disabled = true;
+        btn.textContent = '✓ Submitted!';
+      });
+    });
+  }
+
+  // ── Voting ────────────────────────────────────────────────────────────
+  function renderVotingScreen(data) {
+    currentMatchup = data;
+    showScreen('voting');
+
+    document.getElementById('vote-prompt-text').textContent = data.prompt || data.question || '';
+    const opts = document.getElementById('vote-options');
+    opts.innerHTML = '';
+    document.getElementById('vote-error').classList.remove('visible');
+
+    const aId = data.player_a_id;
+    const bId = data.player_b_id;
+
+    [
+      { label: 'Answer A', answer: data.answer_a, id: aId },
+      { label: 'Answer B', answer: data.answer_b, id: bId },
+    ].forEach(opt => {
+      const div = document.createElement('div');
+      div.className = 'vote-option';
+      div.innerHTML = `<div class="option-label">${opt.label}</div><div>${escHtml(opt.answer || '(no answer)')}</div>`;
+      div.addEventListener('click', () => {
+        if (div.classList.contains('selected')) return;
+        opts.querySelectorAll('.vote-option').forEach(o => o.classList.remove('selected'));
+        div.classList.add('selected');
+        send('submit_vote', { voted_for_id: opt.id });
+        setTimeout(() => showScreen('waiting'), 600);
+      });
+      opts.appendChild(div);
+    });
+  }
+
+  // ── Final answering ───────────────────────────────────────────────────
+  const finalSubmitBtn = document.getElementById('final-submit-btn');
+  finalSubmitBtn.addEventListener('click', () => {
+    const answer = document.getElementById('final-answer-input').value.trim();
+    if (!answer) {
+      document.getElementById('final-error').textContent = 'Write something!';
+      document.getElementById('final-error').classList.add('visible');
+      return;
+    }
+    send('submit_answer', { answer });
+    finalSubmitBtn.disabled = true;
+    finalSubmitBtn.textContent = '✓ Submitted!';
+    showScreen('waiting');
+  });
+
+  // ── Final voting ──────────────────────────────────────────────────────
+  function renderFinalVotingScreen(data) {
+    showScreen('final_voting');
+    finalAnswers = data.final_answers || [];
+    finalVoteAlloc = {};
+    finalAnswers.forEach(a => { finalVoteAlloc[a.player_id] = 0; });
+    renderFinalVoteRows();
+    updateVoteSubmitBtn();
+  }
+
+  function renderFinalVoteRows() {
+    const container = document.getElementById('final-vote-rows');
+    container.innerHTML = '';
+    const totalUsed = Object.values(finalVoteAlloc).reduce((a, b) => a + b, 0);
+    const remaining = 3 - totalUsed;
+    document.getElementById('votes-remaining').textContent =
+      remaining > 0 ? `${remaining} vote${remaining !== 1 ? 's' : ''} left` : '✓ All votes placed';
+
+    finalAnswers.forEach(a => {
+      if (a.player_id === playerId) return; // can't vote for yourself
+      const row = document.createElement('div');
+      row.className = 'final-vote-row';
+      const current = finalVoteAlloc[a.player_id] || 0;
+      row.innerHTML = `
+        <div class="ans-info">
+          <div class="player-tag">${escHtml(a.name)}</div>
+          <div class="ans-text">${escHtml(a.answer || '(no answer)')}</div>
+        </div>
+        <div class="vote-stepper">
+          <button class="dec-btn" data-pid="${a.player_id}" ${current === 0 ? 'disabled' : ''}>−</button>
+          <span class="vote-num" id="vote-num-${a.player_id}">${current}</span>
+          <button class="inc-btn" data-pid="${a.player_id}" ${remaining === 0 ? 'disabled' : ''}>+</button>
+        </div>`;
+      container.appendChild(row);
+    });
+
+    container.querySelectorAll('.inc-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pid = btn.getAttribute('data-pid');
+        const used = Object.values(finalVoteAlloc).reduce((a, b) => a + b, 0);
+        if (used >= 3) return;
+        finalVoteAlloc[pid] = (finalVoteAlloc[pid] || 0) + 1;
+        renderFinalVoteRows();
+        updateVoteSubmitBtn();
+      });
+    });
+    container.querySelectorAll('.dec-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pid = btn.getAttribute('data-pid');
+        if ((finalVoteAlloc[pid] || 0) === 0) return;
+        finalVoteAlloc[pid]--;
+        renderFinalVoteRows();
+        updateVoteSubmitBtn();
+      });
+    });
+  }
+
+  function updateVoteSubmitBtn() {
+    const total = Object.values(finalVoteAlloc).reduce((a, b) => a + b, 0);
+    const btn = document.getElementById('final-vote-submit');
+    btn.disabled = total !== 3;
+    btn.textContent = total === 3 ? 'Submit 3 Votes →' : `Submit Votes (${total}/3)`;
+  }
+
+  document.getElementById('final-vote-submit').addEventListener('click', () => {
+    const total = Object.values(finalVoteAlloc).reduce((a, b) => a + b, 0);
+    if (total !== 3) return;
+    send('submit_final_votes', { votes: finalVoteAlloc });
+    document.getElementById('final-vote-submit').disabled = true;
+    showScreen('results_wait');
+  });
+
+  // ── Game Over ─────────────────────────────────────────────────────────
+  function renderGameOver(data) {
+    showScreen('results_wait');
+    const scoreDisplay = document.getElementById('score-display');
+    const me = (data.final_scores || []).find(s => s.id === playerId);
+    if (me) {
+      document.getElementById('my-score').textContent = me.score;
+      scoreDisplay.style.display = 'block';
+    }
+    // Show a simple message
+    const screen = screens['results_wait'];
+    screen.querySelector('h2').textContent = '🎉 Game Over!';
+    const winners = data.winners || [];
+    const p = screen.querySelector('p');
+    if (winners.includes(myName)) {
+      p.textContent = '🏆 You won! Congrats!';
+      p.style.color = 'var(--primary)';
+    } else {
+      p.textContent = `Winner: ${winners.join(' & ')}. Good game!`;
+    }
+  }
+
+  // ── Timer ─────────────────────────────────────────────────────────────
+  function updateTimer(sec) {
+    const el = document.getElementById('top-timer');
+    if (!sec || sec === 0) { el.textContent = ''; return; }
+    el.textContent = `⏱ ${sec}s`;
+    el.className = sec <= 10 ? 'urgent' : '';
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>
