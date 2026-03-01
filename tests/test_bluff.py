@@ -578,3 +578,28 @@ async def test_host_page_unknown_party_returns_404():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         resp = await c.get("/host/ZZZZ")
     assert resp.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_end_game_broadcasts_party_ended_and_deletes_party():
+    """After game over, a party_ended message is sent and the party is removed."""
+    from unittest.mock import patch
+    from backend.party_manager import party_manager
+
+    messages: list[dict] = []
+
+    async def capture(msg, target=None):
+        messages.append({"msg": msg, "target": target})
+
+    party = party_manager.create_party(game_name="bluff")
+    players = make_players("Alice", "Bob")
+    game = BluffGame(party.code, players, capture)
+
+    with patch("asyncio.sleep", new_callable=AsyncMock):
+        await game._end_game()
+
+    types_sent = [m["msg"]["type"] for m in messages]
+    assert "game_over" in types_sent
+    assert "party_ended" in types_sent
+    # Party should be removed from manager
+    assert party_manager.get_party(party.code) is None
