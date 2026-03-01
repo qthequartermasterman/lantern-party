@@ -11,7 +11,10 @@
 <div id="top-bar">
   <span class="brand">🏮 Lantern Party — Bluff &amp; Baffle</span>
   <span id="party-code-display"></span>
-  <span id="timer-bar"></span>
+  <div style="display:flex;align-items:center;gap:0.8rem;">
+    <button id="tts-btn" title="Toggle narration">🔊</button>
+    <span id="timer-bar"></span>
+  </div>
 </div>
 
 <div id="main">
@@ -84,6 +87,10 @@
   </div>
 
 </div><!-- #main -->
+
+<div id="party-ending-banner" style="display:none">
+  🏮 Party is ending… redirecting in <span id="redirect-countdown">5</span>s
+</div>
 
 <script src="/bluff/host.js"></script>
 </body>

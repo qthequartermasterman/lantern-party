@@ -49,6 +49,18 @@ body {
   text-align: right;
 }
 #timer-bar.urgent { color: var(--accent); }
+#tts-btn {
+  background: none;
+  border: 1.5px solid rgba(245,166,35,0.3);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+#tts-btn:hover { border-color: var(--primary); color: var(--primary); }
+#tts-btn.muted { color: var(--accent); border-color: var(--accent); }
 
 /* ── Main ── */
 #main {
@@ -280,3 +292,19 @@ body {
   cursor: pointer;
 }
 #next-btn.visible { display: block; }
+
+/* ── Party-ending redirect banner ── */
+#party-ending-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface2);
+  border-top: 2px solid var(--primary);
+  color: var(--primary);
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 0.8rem 1rem;
+  z-index: 9999;
+}

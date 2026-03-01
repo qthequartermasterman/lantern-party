@@ -63,6 +63,45 @@ lantern-party/
     └── test_lampoon.py      # 36 unit + integration tests
 ```
 
+## Commit Semantics
+
+This project follows [Conventional Commits](https://www.conventionalcommits.org/) to automate versioning and changelog generation via [python-semantic-release](https://python-semantic-release.readthedocs.io/).
+
+Each commit message should have the form:
+
+```
+<type>(<optional scope>): <short summary>
+```
+
+| Type | When to use | Version bump |
+|------|-------------|--------------|
+| `feat` | A new feature visible to users | **minor** |
+| `fix` | A bug fix | **patch** |
+| `perf` | A performance improvement | **patch** |
+| `docs` | Documentation changes only | none |
+| `style` | Formatting / whitespace (no logic change) | none |
+| `refactor` | Code restructuring without feature/fix | none |
+| `test` | Adding or updating tests | none |
+| `chore` | Tooling, dependencies, config | none |
+| `ci` | CI/CD pipeline changes | none |
+
+A **breaking change** bumps the **major** version. Indicate it with a `!` after the type or a `BREAKING CHANGE:` footer:
+
+```
+feat!: redesign WebSocket protocol
+
+BREAKING CHANGE: players must reconnect after a host restart
+```
+
+### Examples
+
+```
+feat(bluff): add lie-bank shuffle on round start
+fix(lampoon): prevent duplicate prompt assignment
+docs: update README with commit semantics
+chore: upgrade fastapi to 0.115
+```
+
 ## Running Tests
 
 ```bash

@@ -76,6 +76,7 @@ ws.addEventListener('message', e => {
   if (type === 'bluff_reveal')   { handleReveal(data); return; }
   if (type === 'bluff_scores')   { handleScores(data); return; }
   if (type === 'game_over')      { handleGameOver(data); return; }
+  if (type === 'party_ended')    { startRedirectCountdown(5); return; }
   if (type === 'game_state')     { handleGameState(data); return; }
   if (type === 'like_update')    { handleLikeUpdate(data); return; }
 });
@@ -158,6 +159,7 @@ function handleQuestion(data) {
   document.getElementById('question-badge').textContent = `Q ${data.question_num} / ${data.total_questions}`;
   updateProgress('lies-bar', 'lies-count', 0, 0);
   show('collecting-screen');
+  speak(data.prompt);
 }
 
 // ── Voting ────────────────────────────────────────────────────────────
@@ -305,4 +307,42 @@ function handleGameOver(data) {
     cup ? `👍 Thumbs Cup: ${cup}` : '';
   renderScores(data.final_scores || [], document.getElementById('final-scores-list'));
   show('gameover-screen');
+}
+
+// ── Text-to-Speech ─────────────────────────────────────────────────────
+let ttsEnabled = true;
+const ttsBtn = document.getElementById('tts-btn');
+ttsBtn.addEventListener('click', () => {
+  ttsEnabled = !ttsEnabled;
+  ttsBtn.textContent = ttsEnabled ? '🔊' : '🔇';
+  ttsBtn.classList.toggle('muted', !ttsEnabled);
+  if (!ttsEnabled) window.speechSynthesis && window.speechSynthesis.cancel();
+});
+
+function speak(text) {
+  if (!ttsEnabled || !window.speechSynthesis || !text) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.rate = 0.95;
+  utt.pitch = 1;
+  window.speechSynthesis.speak(utt);
+}
+
+// ── Party-ending redirect countdown ──────────────────────────────────
+let _redirectInterval = null;
+function startRedirectCountdown(seconds) {
+  if (_redirectInterval) return;  // already counting down
+  const banner = document.getElementById('party-ending-banner');
+  const countEl = document.getElementById('redirect-countdown');
+  let remaining = seconds;
+  countEl.textContent = remaining;
+  banner.style.display = 'block';
+  _redirectInterval = setInterval(() => {
+    remaining -= 1;
+    countEl.textContent = remaining;
+    if (remaining <= 0) {
+      clearInterval(_redirectInterval);
+      window.location.href = '/';
+    }
+  }, 1000);
 }

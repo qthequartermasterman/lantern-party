@@ -22,6 +22,7 @@ from typing import Any, Awaitable, Callable, TYPE_CHECKING
 
 from backend.games.base import BaseGame
 from backend.games.bluff.prompts import FINAL_PROMPTS, ROUND_PROMPTS
+from backend.party_manager import party_manager
 
 if TYPE_CHECKING:
     pass
@@ -682,6 +683,9 @@ class BluffGame(BaseGame):
             None,
         )
         await self._broadcast_game_state()
+        await asyncio.sleep(10)
+        await self.broadcast({"type": "party_ended", "data": {}}, None)
+        party_manager.delete_party(self.party_code)
 
     # ── Timer ────────────────────────────────────────────────────────────
 
