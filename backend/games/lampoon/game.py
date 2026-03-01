@@ -198,6 +198,9 @@ class LampoonGame(BaseGame):
         self._timer_task: asyncio.Task | None = None
         self._timer_seconds: int = 0
 
+        # idempotency guard: tracks which matchup indices have already been finalized
+        self._finalized_matchups: set[int] = set()
+
     # ── Public interface ────────────────────────────────────────────────
 
     async def start(self) -> None:
@@ -369,8 +372,17 @@ class LampoonGame(BaseGame):
         if n < 2:
             return
 
-        # Choose prompts: each player answers 2, so n matchups total
-        chosen = random.sample(ROUND_PROMPTS, k=min(n, len(ROUND_PROMPTS)))
+        # Choose prompts: we need exactly n prompts (one per matchup).
+        # If there are fewer unique prompts than players, tile and shuffle.
+        if not ROUND_PROMPTS:
+            return
+        if len(ROUND_PROMPTS) >= n:
+            chosen = random.sample(ROUND_PROMPTS, k=n)
+        else:
+            repeats = math.ceil(n / len(ROUND_PROMPTS))
+            prompt_pool = list(ROUND_PROMPTS) * repeats
+            random.shuffle(prompt_pool)
+            chosen = prompt_pool[:n]
 
         # Pair players round-robin style
         random.shuffle(active)
@@ -384,7 +396,6 @@ class LampoonGame(BaseGame):
             matchup_list.append(Matchup(prompt=prompt, player_a_id=pa.id, player_b_id=pb.id))
 
         self.matchups = matchup_list
-        self._answers_expected = n * 2  # each player answers 2 prompts
 
         # Build per-player prompt assignments
         for idx, m in enumerate(self.matchups):
@@ -402,6 +413,12 @@ class LampoonGame(BaseGame):
                     self.prompt_assignments[pid].append((extra_m.prompt, extra_idx))
                 else:
                     break  # can't pad safely, leave as-is
+
+        # Derive _answers_expected from the actual assignments, not a fixed n*2,
+        # so rounds advance correctly even if some players got fewer prompts.
+        self._answers_expected = sum(
+            len(assignments) for assignments in self.prompt_assignments.values()
+        )
 
     async def _send_prompts_to_players(self) -> None:
         for player_id, prompts in self.prompt_assignments.items():
@@ -471,6 +488,7 @@ class LampoonGame(BaseGame):
     async def _begin_revealing(self) -> None:
         self.phase = "revealing"
         self.current_matchup_idx = 0
+        self._finalized_matchups = set()
         await self._start_current_matchup_reveal()
 
     async def _start_current_matchup_reveal(self) -> None:
@@ -552,6 +570,12 @@ class LampoonGame(BaseGame):
             await self._finalize_matchup_voting()
 
     async def _finalize_matchup_voting(self) -> None:
+        # Idempotency guard: ensure this matchup is only finalized once even if
+        # the voting timer and the last-vote path both call us concurrently.
+        if self.current_matchup_idx in self._finalized_matchups:
+            return
+        self._finalized_matchups.add(self.current_matchup_idx)
+
         m = self._current_matchup()
         if m is None:
             return
@@ -581,9 +605,12 @@ class LampoonGame(BaseGame):
         await self.broadcast(vote_result_msg, None)
         await self._broadcast_game_state()
 
-        # Auto-advance after 4s or wait for host 'next'
+        # Auto-advance after 4 s; guard against a concurrent host 'next' that
+        # already advanced the matchup index during the sleep window.
+        finalized_idx = self.current_matchup_idx
         await asyncio.sleep(4)
-        await self._advance_matchup()
+        if self.phase == "revealing" and self.current_matchup_idx == finalized_idx:
+            await self._advance_matchup()
 
     async def _advance_matchup(self) -> None:
         self.current_matchup_idx += 1
@@ -756,19 +783,43 @@ class LampoonGame(BaseGame):
             return
         if player_id in self.final_votes:
             return
-        raw_votes: dict[str, int] = data.get("votes", {})
-        # Validate: must sum to exactly 3, all targets are valid players
-        total = sum(raw_votes.values())
+        raw_votes = data.get("votes", {})
+        if not isinstance(raw_votes, dict):
+            await self.broadcast(
+                {"type": "error", "data": {"message": "Invalid vote format."}},
+                player_id,
+            )
+            return
+
+        valid_targets = set(self.final_answers.keys())
+        total = 0
+        for target_id, cnt in raw_votes.items():
+            if target_id not in valid_targets:
+                await self.broadcast(
+                    {"type": "error", "data": {"message": "Invalid vote target."}},
+                    player_id,
+                )
+                return
+            if target_id == player_id:
+                await self.broadcast(
+                    {"type": "error", "data": {"message": "You cannot vote for yourself."}},
+                    player_id,
+                )
+                return
+            if not isinstance(cnt, int) or cnt < 0 or cnt > 3:
+                await self.broadcast(
+                    {"type": "error", "data": {"message": "Invalid vote count."}},
+                    player_id,
+                )
+                return
+            total += cnt
+
         if total != 3:
             await self.broadcast(
                 {"type": "error", "data": {"message": "You must cast exactly 3 votes."}},
                 player_id,
             )
             return
-        valid_targets = set(self.final_answers.keys())
-        for target in raw_votes:
-            if target not in valid_targets:
-                return
 
         self.final_votes[player_id] = raw_votes
         self._votes_received += 1
@@ -835,6 +886,10 @@ class LampoonGame(BaseGame):
         """Host can manually advance certain phases."""
         if player_id != "host":
             return
+        # Only allow manual advance in the revealing phase if the current matchup
+        # has already been finalized/scored (prevents skipping voting or double-scoring).
         if self.phase == "revealing":
+            if self.current_matchup_idx not in self._finalized_matchups:
+                return
             self._cancel_timer()
             await self._advance_matchup()

@@ -5,7 +5,7 @@ Open Source, phone-controlled browser party games for couch-friendly chaos.
 ## Running the App
 
 ```bash
-pip install -r requirements.txt
+uv sync
 uvicorn backend.main:app --reload --port 8000
 ```
 
@@ -55,7 +55,8 @@ lantern-party/
 │   ├── index.html           # Landing / lobby page
 │   ├── host.html            # Big-screen host view
 │   └── player.html          # Mobile player controller
-├── requirements.txt
+├── pyproject.toml
+├── uv.lock
 └── tests/
     └── test_lampoon.py      # 36 unit + integration tests
 ```
@@ -63,5 +64,5 @@ lantern-party/
 ## Running Tests
 
 ```bash
-pytest tests/ -v
+uv run pytest tests/ -v
 ```

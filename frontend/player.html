@@ -558,9 +558,17 @@
 
     if (type === 'lobby_state') {
       currentPhase = 'lobby';
+      // Confirm join: if our player ID now appears in the player list, the server
+      // accepted the join request.  Only then flip hasJoined and show the lobby.
+      const playerList = data.players || [];
+      if (!hasJoined && playerList.some(p => p.id === playerId)) {
+        hasJoined = true;
+        nameSubmitBtn.disabled = true;
+        joinError.classList.remove('visible');
+      }
       if (hasJoined) {
         showScreen('lobby');
-        renderLobbyPlayers(data.players || []);
+        renderLobbyPlayers(playerList);
       }
       // If game is already playing on reconnect, game_state will follow
       if (data.state !== 'lobby') { /* let game_state handle */ }
@@ -695,10 +703,9 @@
     myName = name;
     sessionStorage.setItem('playerName', name);
     send('join', { name });
-    hasJoined = true;
-    nameSubmitBtn.disabled = true;
+    // hasJoined and button-disabled state are set in the lobby_state handler
+    // once the server confirms the player was added successfully.
     joinError.classList.remove('visible');
-    showScreen('lobby');
   });
   nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') nameSubmitBtn.click(); });
 
@@ -706,8 +713,11 @@
     // Show on whatever is relevant
     joinError.textContent = msg;
     joinError.classList.add('visible');
-    if (hasJoined) {
-      // Show subtle error toast
+    if (!hasJoined) {
+      // Join was rejected; re-enable the button so the player can try again.
+      nameSubmitBtn.disabled = false;
+    } else {
+      // Show subtle error toast for in-game errors
       console.warn('Server error:', msg);
     }
   }
