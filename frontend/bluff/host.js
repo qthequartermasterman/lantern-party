@@ -117,6 +117,7 @@ function handleGameState(data) {
   if (!data.game || data.game !== 'bluff') return;
   const phase = data.phase;
   if (phase === 'collecting_lies') {
+    _clearReveal();
     if (data.lies_received !== undefined) {
       updateProgress('lies-bar', 'lies-count', data.lies_received, data.lies_expected);
     }
@@ -125,12 +126,15 @@ function handleGameState(data) {
       show('collecting-screen');
     }
   } else if (phase === 'voting') {
+    _clearReveal();
     if (data.votes_received !== undefined) {
       updateProgress('votes-bar', 'votes-count', data.votes_received, data.votes_expected);
     }
   } else if (phase === 'scores') {
+    _clearReveal();
     renderScoresScreen(data);
   } else if (phase === 'game_over') {
+    _clearReveal();
     handleGameOver(data);
   }
 }
@@ -152,6 +156,7 @@ function renderQuestionCard(q) {
 
 // ── Collecting lies ──────────────────────────────────────────────────
 function handleQuestion(data) {
+  _clearReveal();
   document.getElementById('collect-category').textContent = data.category || '';
   document.getElementById('collect-prompt').innerHTML = highlightPrompt(data.prompt);
   document.getElementById('round-badge').textContent = `Round ${data.round_num}`;
@@ -164,6 +169,7 @@ function handleQuestion(data) {
 
 // ── Voting ────────────────────────────────────────────────────────────
 function handleVoting(data) {
+  _clearReveal();
   document.getElementById('vote-category').textContent = data.category || '';
   document.getElementById('vote-prompt').innerHTML = highlightPrompt(data.prompt);
   document.getElementById('vote-round-badge').textContent = 'Voting';
@@ -238,6 +244,12 @@ function _buildRevealCard(c) {
   return card;
 }
 
+function _clearReveal() {
+  if (_revealStepTimeout !== null) { clearTimeout(_revealStepTimeout); _revealStepTimeout = null; }
+  _revealData = null;
+  _revealSequence = [];
+}
+
 function _scheduleNextReveal(idx) {
   if (idx >= _revealSequence.length) {
     document.getElementById('next-btn').textContent = 'Next →';
@@ -245,14 +257,15 @@ function _scheduleNextReveal(idx) {
     _revealStepTimeout = null;
     return;
   }
+  const delay = idx === 0 ? 0 : 3000;
   _revealStepTimeout = setTimeout(() => {
     document.getElementById('reveal-choice-grid').appendChild(_buildRevealCard(_revealSequence[idx]));
     _scheduleNextReveal(idx + 1);
-  }, 3000);
+  }, delay);
 }
 
 function handleReveal(data) {
-  if (_revealStepTimeout !== null) { clearTimeout(_revealStepTimeout); _revealStepTimeout = null; }
+  _clearReveal();
   _revealData = data;
   const choices = data.choices || [];
   const lies = choices.filter(c => !c.is_truth);
@@ -277,15 +290,14 @@ function handleLikeUpdate(data) {
 }
 
 document.getElementById('next-btn').addEventListener('click', () => {
-  if (_revealStepTimeout !== null) { clearTimeout(_revealStepTimeout); _revealStepTimeout = null; }
-  _revealData = null;
-  _revealSequence = [];
+  _clearReveal();
   ws.send(JSON.stringify({ type: 'next', data: {} }));
   document.getElementById('next-btn').classList.remove('visible');
 });
 
 // ── Scores ────────────────────────────────────────────────────────────
 function handleScores(data) {
+  _clearReveal();
   renderScoresScreen(data);
   show('scores-screen');
 }
