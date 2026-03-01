@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lantern Party 🏮</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1a1020;
+      --surface: #2a1f35;
+      --surface2: #3a2d4a;
+      --primary: #f5a623;
+      --primary-dark: #d4891a;
+      --accent: #e8645a;
+      --text: #f0e8ff;
+      --text-muted: #a090b8;
+      --radius: 14px;
+      --glow: 0 0 20px rgba(245,166,35,0.35);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(245,166,35,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(232,100,90,0.06) 0%, transparent 50%);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .logo { font-size: 4rem; line-height: 1; }
+
+    h1 {
+      font-size: clamp(2.2rem, 6vw, 3.5rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+
+    .tagline {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      margin-top: 0.4rem;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 760px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid rgba(245,166,35,0.15);
+      border-radius: var(--radius);
+      padding: 2rem;
+    }
+
+    .card h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1.5px solid rgba(245,166,35,0.2);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1.1rem;
+      padding: 0.65rem 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 1rem;
+    }
+    input[type="text"]:focus { border-color: var(--primary); }
+    input[type="text"]::placeholder { color: var(--text-muted); }
+    input[type="text"].code-input {
+      text-transform: uppercase;
+      letter-spacing: 0.25em;
+      font-size: 1.4rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #1a1020;
+      box-shadow: var(--glow);
+    }
+    .btn-primary:hover { box-shadow: 0 0 30px rgba(245,166,35,0.5); }
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .error-msg {
+      background: rgba(232,100,90,0.15);
+      border: 1px solid rgba(232,100,90,0.4);
+      border-radius: 8px;
+      color: #f08080;
+      font-size: 0.9rem;
+      padding: 0.6rem 0.9rem;
+      margin-top: 0.8rem;
+      display: none;
+    }
+    .error-msg.visible { display: block; }
+
+    .game-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(245,166,35,0.12);
+      border: 1px solid rgba(245,166,35,0.25);
+      border-radius: 20px;
+      padding: 0.4rem 0.9rem;
+      font-size: 0.9rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+    }
+
+    footer {
+      margin-top: 3rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🏮</div>
+  <h1>Lantern Party</h1>
+  <p class="tagline">The party game where your answers do the talking</p>
+</header>
+
+<div class="cards">
+
+  <!-- Create Party -->
+  <div class="card">
+    <h2>🎉 Create a Party</h2>
+    <div class="game-badge">✏️ Lampoon</div>
+    <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1.2rem;">
+      You'll be the host on the big screen. Share your party code with friends!
+    </p>
+    <button class="btn btn-primary" id="createBtn">Create Party</button>
+    <div class="error-msg" id="createError"></div>
+  </div>
+
+  <!-- Join Party -->
+  <div class="card">
+    <h2>🎮 Join a Party</h2>
+    <label for="codeInput">Party Code</label>
+    <input type="text" id="codeInput" class="code-input" placeholder="ABCD" maxlength="4" autocomplete="off" />
+    <label for="nameInput">Your Name</label>
+    <input type="text" id="nameInput" placeholder="e.g. CoolPlayer" maxlength="20" autocomplete="off" />
+    <button class="btn btn-primary" id="joinBtn">Join Party</button>
+    <div class="error-msg" id="joinError"></div>
+  </div>
+
+</div>
+
+<footer>
+  Lantern Party &copy; 2024 &mdash; A Lampoon game for friends
+</footer>
+
+<script>
+  const createBtn = document.getElementById('createBtn');
+  const joinBtn   = document.getElementById('joinBtn');
+  const codeInput = document.getElementById('codeInput');
+  const nameInput = document.getElementById('nameInput');
+  const createError = document.getElementById('createError');
+  const joinError   = document.getElementById('joinError');
+
+  function showError(el, msg) {
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+  function clearError(el) { el.classList.remove('visible'); }
+
+  codeInput.addEventListener('input', () => {
+    codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z]/g, '');
+    clearError(joinError);
+  });
+  nameInput.addEventListener('input', () => clearError(joinError));
+
+  createBtn.addEventListener('click', async () => {
+    clearError(createError);
+    createBtn.disabled = true;
+    createBtn.textContent = 'Creating…';
+    try {
+      const res = await fetch('/api/party', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ game_name: 'lampoon' }),
+      });
+      if (!res.ok) throw new Error('Server error');
+      const data = await res.json();
+      window.location.href = data.host_url;
+    } catch (e) {
+      showError(createError, 'Could not create party. Is the server running?');
+      createBtn.disabled = false;
+      createBtn.textContent = 'Create Party';
+    }
+  });
+
+  joinBtn.addEventListener('click', async () => {
+    const code = codeInput.value.trim().toUpperCase();
+    const name = nameInput.value.trim();
+    clearError(joinError);
+
+    if (code.length !== 4) { showError(joinError, 'Enter a 4-letter party code.'); return; }
+    if (!name)             { showError(joinError, 'Enter your name to join.'); return; }
+
+    joinBtn.disabled = true;
+    joinBtn.textContent = 'Joining…';
+    try {
+      const res = await fetch(`/api/party/${code}/join`, { method: 'POST' });
+      if (res.status === 404) { showError(joinError, 'Party not found. Check the code!'); return; }
+      if (res.status === 400) { showError(joinError, 'Game already started – too late!'); return; }
+      if (!res.ok) throw new Error('Server error');
+      const data = await res.json();
+      // Store name; player page will use it for the join WS message
+      sessionStorage.setItem('playerName', name);
+      window.location.href = data.player_url;
+    } catch (e) {
+      showError(joinError, 'Could not join. Is the server running?');
+    } finally {
+      joinBtn.disabled = false;
+      joinBtn.textContent = 'Join Party';
+    }
+  });
+
+  // Allow Enter key in join fields
+  [codeInput, nameInput].forEach(el =>
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') joinBtn.click(); })
+  );
+</script>
+</body>
+</html>
