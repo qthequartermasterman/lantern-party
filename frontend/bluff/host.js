@@ -154,6 +154,7 @@ function handleQuestion(data) {
   document.getElementById('question-badge').textContent = `Q ${data.question_num} / ${data.total_questions}`;
   updateProgress('lies-bar', 'lies-count', 0, 0);
   show('collecting-screen');
+  speak(data.prompt);
 }
 
 // ── Voting ────────────────────────────────────────────────────────────
@@ -275,4 +276,23 @@ function handleGameOver(data) {
     cup ? `👍 Thumbs Cup: ${cup}` : '';
   renderScores(data.final_scores || [], document.getElementById('final-scores-list'));
   show('gameover-screen');
+}
+
+// ── Text-to-Speech ─────────────────────────────────────────────────────
+let ttsEnabled = true;
+const ttsBtn = document.getElementById('tts-btn');
+ttsBtn.addEventListener('click', () => {
+  ttsEnabled = !ttsEnabled;
+  ttsBtn.textContent = ttsEnabled ? '🔊' : '🔇';
+  ttsBtn.classList.toggle('muted', !ttsEnabled);
+  if (!ttsEnabled) window.speechSynthesis && window.speechSynthesis.cancel();
+});
+
+function speak(text) {
+  if (!ttsEnabled || !window.speechSynthesis || !text) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.rate = 0.95;
+  utt.pitch = 1;
+  window.speechSynthesis.speak(utt);
 }
