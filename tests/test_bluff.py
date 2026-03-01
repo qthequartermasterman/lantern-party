@@ -542,6 +542,8 @@ async def test_bluff_host_page():
         resp = await c.get(f"/host/{code}")
     assert resp.status_code == 200
     assert "bluff" in resp.text.lower() or "lantern" in resp.text.lower()
+    assert '/bluff/host.css' in resp.text
+    assert '/bluff/host.js' in resp.text
 
 
 @pytest.mark.anyio
@@ -551,6 +553,8 @@ async def test_bluff_player_page():
         code = create.json()["code"]
         resp = await c.get(f"/player/{code}")
     assert resp.status_code == 200
+    assert '/bluff/player.css' in resp.text
+    assert '/bluff/player.js' in resp.text
 
 
 @pytest.mark.anyio
