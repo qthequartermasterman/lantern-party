@@ -172,8 +172,10 @@ function handleVoting(data) {
   _clearReveal();
   document.getElementById('vote-category').textContent = data.category || '';
   document.getElementById('vote-prompt').innerHTML = highlightPrompt(data.prompt);
-  document.getElementById('vote-round-badge').textContent = 'Voting';
-  document.getElementById('vote-q-badge').textContent = '';
+  document.getElementById('vote-round-badge').textContent = `Round ${data.round_num}`;
+  document.getElementById('vote-round-badge').className = 'rbadge active';
+  document.getElementById('vote-q-badge').textContent = data.question_num
+    ? `Q ${data.question_num} / ${data.total_questions}` : '';
   updateProgress('votes-bar', 'votes-count', 0, 0);
 
   const grid = document.getElementById('vote-choice-grid');
