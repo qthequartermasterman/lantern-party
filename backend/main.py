@@ -46,20 +46,22 @@ async def index() -> FileResponse:
 
 
 @app.get("/host/{party_code}", include_in_schema=False)
-async def host_page(party_code: str, game: str = "") -> FileResponse:
-    if game not in _KNOWN_GAMES:
-        raise HTTPException(status_code=404, detail="Unknown game")
-    path = FRONTEND_DIR / game / "host.html"
+async def host_page(party_code: str) -> FileResponse:
+    party = party_manager.get_party(party_code)
+    if not party:
+        raise HTTPException(status_code=404, detail="Party not found")
+    path = FRONTEND_DIR / party.game_name / "host.html"
     if not path.exists():
         raise HTTPException(status_code=404, detail="Game page not found")
     return FileResponse(path)
 
 
 @app.get("/player/{party_code}", include_in_schema=False)
-async def player_page(party_code: str, game: str = "") -> FileResponse:
-    if game not in _KNOWN_GAMES:
-        raise HTTPException(status_code=404, detail="Unknown game")
-    path = FRONTEND_DIR / game / "player.html"
+async def player_page(party_code: str) -> FileResponse:
+    party = party_manager.get_party(party_code)
+    if not party:
+        raise HTTPException(status_code=404, detail="Party not found")
+    path = FRONTEND_DIR / party.game_name / "player.html"
     if not path.exists():
         raise HTTPException(status_code=404, detail="Game page not found")
     return FileResponse(path)
@@ -80,7 +82,7 @@ async def create_party(body: CreatePartyRequest) -> dict:
     party = party_manager.create_party(game_name=body.game_name)
     return {
         "code": party.code,
-        "host_url": f"/host/{party.code}?game={body.game_name}",
+        "host_url": f"/host/{party.code}",
     }
 
 
@@ -96,7 +98,7 @@ async def join_party(code: str) -> dict:
     if party.state != "lobby":
         raise HTTPException(status_code=400, detail="Game already in progress")
     upper = code.upper()
-    return {"player_url": f"/player/{upper}?game={party.game_name}"}
+    return {"player_url": f"/player/{upper}"}
 
 
 # ──────────────────────────────────────────────

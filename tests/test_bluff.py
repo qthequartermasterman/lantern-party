@@ -521,7 +521,7 @@ async def test_create_bluff_party():
     assert resp.status_code == 200
     body = resp.json()
     assert "code" in body
-    assert "?game=bluff" in body["host_url"]
+    assert body["host_url"] == f"/host/{body['code']}"
 
 
 @pytest.mark.anyio
@@ -531,7 +531,7 @@ async def test_join_bluff_party_returns_bluff_player_url():
         code = create.json()["code"]
         join = await c.post(f"/api/party/{code}/join")
     assert join.status_code == 200
-    assert "?game=bluff" in join.json()["player_url"]
+    assert join.json()["player_url"] == f"/player/{code}"
 
 
 @pytest.mark.anyio
@@ -539,7 +539,7 @@ async def test_bluff_host_page():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         create = await c.post("/api/party", json={"game_name": "bluff"})
         code = create.json()["code"]
-        resp = await c.get(f"/host/{code}?game=bluff")
+        resp = await c.get(f"/host/{code}")
     assert resp.status_code == 200
     assert "bluff" in resp.text.lower() or "lantern" in resp.text.lower()
 
@@ -549,16 +549,17 @@ async def test_bluff_player_page():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         create = await c.post("/api/party", json={"game_name": "bluff"})
         code = create.json()["code"]
-        resp = await c.get(f"/player/{code}?game=bluff")
+        resp = await c.get(f"/player/{code}")
     assert resp.status_code == 200
 
 
 @pytest.mark.anyio
-async def test_lampoon_party_uses_game_query_param():
-    """Lampoon parties use ?game=lampoon in their URLs."""
+async def test_lampoon_party_host_url_uses_party_code():
+    """Lampoon party host URL is /host/{code} with no query param."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         resp = await c.post("/api/party", json={"game_name": "lampoon"})
-    assert "?game=lampoon" in resp.json()["host_url"]
+    body = resp.json()
+    assert body["host_url"] == f"/host/{body['code']}"
 
 
 @pytest.mark.anyio
@@ -569,7 +570,7 @@ async def test_unknown_game_returns_400():
 
 
 @pytest.mark.anyio
-async def test_host_page_unknown_game_returns_404():
+async def test_host_page_unknown_party_returns_404():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        resp = await c.get("/host/ABCD?game=notreal")
+        resp = await c.get("/host/ZZZZ")
     assert resp.status_code == 404

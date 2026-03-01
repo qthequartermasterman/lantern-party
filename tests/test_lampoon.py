@@ -250,9 +250,11 @@ async def test_index_page():
 @pytest.mark.anyio
 async def test_host_page():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/host/ABCD?game=lampoon")
-    assert resp.status_code == 200
-    assert "host" in resp.text.lower()
+        resp = await client.post("/api/party", json={"game_name": "lampoon"})
+        code = resp.json()["code"]
+        page = await client.get(f"/host/{code}")
+    assert page.status_code == 200
+    assert "host" in page.text.lower()
 
 
 @pytest.mark.anyio
@@ -260,7 +262,7 @@ async def test_player_page():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.post("/api/party", json={"game_name": "lampoon"})
         code = resp.json()["code"]
-        page = await client.get(f"/player/{code}?game=lampoon")
+        page = await client.get(f"/player/{code}")
     assert page.status_code == 200
 
 
