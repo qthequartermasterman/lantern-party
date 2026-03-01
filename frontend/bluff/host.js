@@ -43,8 +43,8 @@ let timerInterval = null;
 let localTimer = 0;
 
 let _revealData = null;
-let _revealStep = 0;
-let _revealLies = [];
+let _revealSequence = [];
+let _revealStepTimeout = null;
 
 function startLocalTimer(seconds) {
   clearInterval(timerInterval);
@@ -238,48 +238,48 @@ function _buildRevealCard(c) {
   return card;
 }
 
-function _showRevealStep() {
-  if (!_revealData) return;
-  const grid = document.getElementById('reveal-choice-grid');
-  const nextBtn = document.getElementById('next-btn');
-  grid.innerHTML = '';
-  if (_revealStep < _revealLies.length) {
-    grid.appendChild(_buildRevealCard(_revealLies[_revealStep]));
-    const isLastLie = (_revealStep === _revealLies.length - 1);
-    nextBtn.textContent = isLastLie ? 'Reveal Truth →' : 'Next Lie →';
-    nextBtn.classList.add('visible');
-  } else {
-    (_revealData.choices || []).forEach(c => grid.appendChild(_buildRevealCard(c)));
-    nextBtn.textContent = 'Next →';
-    nextBtn.classList.add('visible');
+function _scheduleNextReveal(idx) {
+  if (idx >= _revealSequence.length) {
+    document.getElementById('next-btn').textContent = 'Next →';
+    document.getElementById('next-btn').classList.add('visible');
+    _revealStepTimeout = null;
+    return;
   }
+  _revealStepTimeout = setTimeout(() => {
+    document.getElementById('reveal-choice-grid').appendChild(_buildRevealCard(_revealSequence[idx]));
+    _scheduleNextReveal(idx + 1);
+  }, 3000);
 }
 
 function handleReveal(data) {
+  if (_revealStepTimeout !== null) { clearTimeout(_revealStepTimeout); _revealStepTimeout = null; }
   _revealData = data;
-  _revealStep = 0;
-  _revealLies = (data.choices || []).filter(c => !c.is_truth);
+  const choices = data.choices || [];
+  const lies = choices.filter(c => !c.is_truth);
+  const truth = choices.find(c => c.is_truth);
+  const liesNonzero = lies.filter(c => c.votes > 0).sort((a, b) => a.votes - b.votes);
+  const liesZero = lies.filter(c => c.votes === 0);
+  _revealSequence = [...liesNonzero, ...(truth ? [truth] : []), ...liesZero];
   document.getElementById('reveal-prompt').innerHTML = highlightPrompt(data.prompt);
-  _showRevealStep();
+  document.getElementById('reveal-choice-grid').innerHTML = '';
+  document.getElementById('next-btn').classList.remove('visible');
   show('revealing-screen');
+  _scheduleNextReveal(0);
 }
 
 function handleLikeUpdate(data) {
   const el = document.getElementById(`likes-${data.choice_index}`);
   if (el) el.textContent = data.likes;
+  if (_revealData) {
+    const choice = (_revealData.choices || []).find(c => c.index === data.choice_index);
+    if (choice) choice.likes = data.likes;
+  }
 }
 
 document.getElementById('next-btn').addEventListener('click', () => {
-  if (_revealData) {
-    _revealStep++;
-    if (_revealStep <= _revealLies.length) {
-      _showRevealStep();
-      return;
-    }
-    _revealData = null;
-    _revealStep = 0;
-    _revealLies = [];
-  }
+  if (_revealStepTimeout !== null) { clearTimeout(_revealStepTimeout); _revealStepTimeout = null; }
+  _revealData = null;
+  _revealSequence = [];
   ws.send(JSON.stringify({ type: 'next', data: {} }));
   document.getElementById('next-btn').classList.remove('visible');
 });
