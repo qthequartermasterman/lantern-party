@@ -42,6 +42,10 @@ const ws = new WebSocket(`${proto}://${location.host}/ws/${partyCode}/host`);
 let timerInterval = null;
 let localTimer = 0;
 
+let _revealData = null;
+let _revealStep = 0;
+let _revealLies = [];
+
 function startLocalTimer(seconds) {
   clearInterval(timerInterval);
   localTimer = seconds;
@@ -185,60 +189,76 @@ function handleVoting(data) {
 }
 
 // ── Revealing ─────────────────────────────────────────────────────────
-function handleReveal(data) {
-  document.getElementById('reveal-prompt').innerHTML = highlightPrompt(data.prompt);
+function _buildRevealCard(c) {
+  const isTruth = c.is_truth;
+  const card = document.createElement('div');
+  card.className = 'choice-card' + (isTruth ? ' is-truth' : '');
+  if (isTruth) {
+    const badge = document.createElement('div');
+    badge.className = 'truth-badge';
+    badge.textContent = '✓ Truth';
+    card.appendChild(badge);
+  }
+  const textEl = document.createElement('div');
+  textEl.className = 'choice-text';
+  textEl.textContent = c.text;
+  card.appendChild(textEl);
+  const footer = document.createElement('div');
+  footer.className = 'choice-footer';
+  if (isTruth) {
+    const votesSpan = document.createElement('span');
+    votesSpan.className = 'choice-votes';
+    votesSpan.textContent = `${c.votes} vote${c.votes !== 1 ? 's' : ''}`;
+    footer.appendChild(votesSpan);
+  } else {
+    const submitterSpan = document.createElement('span');
+    submitterSpan.className = 'choice-submitter';
+    submitterSpan.textContent = c.submitter_name || '?';
+    footer.appendChild(submitterSpan);
+    if (c.game_provided) {
+      const gpBadge = document.createElement('span');
+      gpBadge.className = 'game-provided-badge';
+      gpBadge.textContent = 'auto';
+      footer.appendChild(gpBadge);
+    }
+    footer.appendChild(document.createTextNode(' · '));
+    const votesSpan = document.createElement('span');
+    votesSpan.className = 'choice-votes';
+    votesSpan.textContent = `${c.votes} vote${c.votes !== 1 ? 's' : ''}`;
+    footer.appendChild(votesSpan);
+    footer.appendChild(document.createTextNode(' · ❤️ '));
+    const likesSpan = document.createElement('span');
+    likesSpan.id = `likes-${c.index}`;
+    likesSpan.textContent = String(c.likes || 0);
+    footer.appendChild(likesSpan);
+  }
+  card.appendChild(footer);
+  return card;
+}
 
+function _showRevealStep() {
+  if (!_revealData) return;
   const grid = document.getElementById('reveal-choice-grid');
-  grid.innerHTML = '';
-  data.choices.forEach(c => {
-    const isTruth = c.is_truth;
-    const card = document.createElement('div');
-    card.className = 'choice-card' + (isTruth ? ' is-truth' : '');
-    if (isTruth) {
-      const badge = document.createElement('div');
-      badge.className = 'truth-badge';
-      badge.textContent = '✓ Truth';
-      card.appendChild(badge);
-    }
-    const textEl = document.createElement('div');
-    textEl.className = 'choice-text';
-    textEl.textContent = c.text;
-    card.appendChild(textEl);
-    const footer = document.createElement('div');
-    footer.className = 'choice-footer';
-    if (isTruth) {
-      const votesSpan = document.createElement('span');
-      votesSpan.className = 'choice-votes';
-      votesSpan.textContent = `${c.votes} vote${c.votes !== 1 ? 's' : ''}`;
-      footer.appendChild(votesSpan);
-    } else {
-      const submitterSpan = document.createElement('span');
-      submitterSpan.className = 'choice-submitter';
-      submitterSpan.textContent = c.submitter_name || '?';
-      footer.appendChild(submitterSpan);
-      if (c.game_provided) {
-        const gpBadge = document.createElement('span');
-        gpBadge.className = 'game-provided-badge';
-        gpBadge.textContent = 'auto';
-        footer.appendChild(gpBadge);
-      }
-      footer.appendChild(document.createTextNode(' · '));
-      const votesSpan = document.createElement('span');
-      votesSpan.className = 'choice-votes';
-      votesSpan.textContent = `${c.votes} vote${c.votes !== 1 ? 's' : ''}`;
-      footer.appendChild(votesSpan);
-      footer.appendChild(document.createTextNode(' · ❤️ '));
-      const likesSpan = document.createElement('span');
-      likesSpan.id = `likes-${c.index}`;
-      likesSpan.textContent = String(c.likes || 0);
-      footer.appendChild(likesSpan);
-    }
-    card.appendChild(footer);
-    grid.appendChild(card);
-  });
-
   const nextBtn = document.getElementById('next-btn');
-  nextBtn.classList.add('visible');
+  grid.innerHTML = '';
+  if (_revealStep < _revealLies.length) {
+    grid.appendChild(_buildRevealCard(_revealLies[_revealStep]));
+    const isLastLie = (_revealStep === _revealLies.length - 1);
+    nextBtn.textContent = isLastLie ? 'Reveal Truth →' : 'Next Lie →';
+    nextBtn.classList.add('visible');
+  } else {
+    (_revealData.choices || []).forEach(c => grid.appendChild(_buildRevealCard(c)));
+    nextBtn.textContent = 'Next →';
+    nextBtn.classList.add('visible');
+  }
+}
+
+function handleReveal(data) {
+  _revealData = data;
+  _revealStep = 0;
+  _revealLies = (data.choices || []).filter(c => !c.is_truth);
+  document.getElementById('reveal-prompt').innerHTML = highlightPrompt(data.prompt);
+  _showRevealStep();
   show('revealing-screen');
 }
 
@@ -248,6 +268,16 @@ function handleLikeUpdate(data) {
 }
 
 document.getElementById('next-btn').addEventListener('click', () => {
+  if (_revealData) {
+    _revealStep++;
+    if (_revealStep <= _revealLies.length) {
+      _showRevealStep();
+      return;
+    }
+    _revealData = null;
+    _revealStep = 0;
+    _revealLies = [];
+  }
   ws.send(JSON.stringify({ type: 'next', data: {} }));
   document.getElementById('next-btn').classList.remove('visible');
 });

@@ -542,7 +542,7 @@ class BluffGame(BaseGame):
         reveal_data["score_deltas"] = deltas
         await self.broadcast({"type": "bluff_reveal", "data": reveal_data}, None)
         await self._broadcast_game_state()
-        await self._start_timer(15, self._on_revealing_expire)
+        await self._start_timer(60, self._on_revealing_expire)
 
     def _build_reveal_data(self, *, include_truth: bool = False) -> dict[str, Any]:
         """Build the reveal payload for host and players."""
