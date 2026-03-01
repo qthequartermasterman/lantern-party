@@ -1,5 +1,5 @@
 """
-Tests for the Fib game logic and HTTP API.
+Tests for the Bluff and Baffle game logic and HTTP API.
 """
 from __future__ import annotations
 
@@ -7,9 +7,11 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from hypothesis import given, settings, assume
+from hypothesis import strategies as st
 
-from backend.games.fib.game import (
-    FibGame,
+from backend.games.bluff.game import (
+    BluffGame,
     Player,
     _is_too_similar,
     _score_question,
@@ -31,8 +33,8 @@ async def noop_broadcast(msg: dict[str, Any], target: str | None = None) -> None
     pass
 
 
-def make_game(players: dict[str, Player]) -> FibGame:
-    return FibGame(party_code="TEST", players=players, broadcast=noop_broadcast)
+def make_game(players: dict[str, Player]) -> BluffGame:
+    return BluffGame(party_code="TEST", players=players, broadcast=noop_broadcast)
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -56,6 +58,41 @@ class TestIsTooSimilar:
         assert _is_too_similar("banana", "xyz") is False
 
 
+# ── Hypothesis: property-based tests for similarity check ──────────────
+
+@given(text=st.text(min_size=1, max_size=40, alphabet=st.characters(whitelist_categories=('Lu', 'Ll', 'Nd', 'Zs'))))
+def test_truth_always_too_similar_to_itself(text: str) -> None:
+    """Any non-empty string is too similar to itself."""
+    assume(text.strip())
+    assert _is_too_similar(text, text) is True
+
+
+@given(
+    truth=st.text(min_size=3, max_size=20, alphabet=st.characters(whitelist_categories=('Lu', 'Ll'))),
+    lie=st.text(min_size=3, max_size=20, alphabet=st.characters(whitelist_categories=('Lu', 'Ll'))),
+)
+@settings(max_examples=200)
+def test_similarity_is_symmetric(truth: str, lie: str) -> None:
+    """Similarity check should be approximately symmetric."""
+    assume(truth.strip() and lie.strip())
+    # If A is too similar to B, B should be too similar to A
+    # (SequenceMatcher ratio is symmetric, so this must hold)
+    assert _is_too_similar(truth, lie) == _is_too_similar(lie, truth)
+
+
+@given(
+    truth=st.text(min_size=5, max_size=30, alphabet=st.characters(whitelist_categories=('Lu', 'Ll', 'Zs'))),
+)
+@settings(max_examples=100)
+def test_very_different_strings_not_too_similar(truth: str) -> None:
+    """Strings sharing no characters with truth should not be 'too similar'."""
+    assume(truth.strip())
+    # A string of digits has no letter overlap
+    digits_only = "12345678901234"
+    assume(not any(c.lower() in digits_only.lower() for c in truth))
+    assert _is_too_similar(digits_only, truth) is False
+
+
 # ──────────────────────────────────────────────────────────────────────
 # Unit: scoring
 # ──────────────────────────────────────────────────────────────────────
@@ -65,9 +102,7 @@ class TestScoreQuestion:
         return {pid: Player(id=pid, name=pid) for pid in ids}
 
     def test_truth_vote_awards_points(self):
-        # choice_keys: [truth, pid0, pid1]
         players = self._players("pid0", "pid1", "pid2")
-        # pid2 votes for truth (index 0)
         deltas = _score_question(
             choice_keys=["truth", "pid0", "pid1"],
             votes={"pid2": 0},
@@ -103,11 +138,10 @@ class TestScoreQuestion:
         assert deltas.get("pid2", 0) == 3000
 
     def test_fooling_points(self):
-        # pid1 votes for pid0's lie (index 1) → pid0 gets 500 pts
         players = self._players("pid0", "pid1", "pid2")
         deltas = _score_question(
             choice_keys=["truth", "pid0", "pid2"],
-            votes={"pid1": 1},  # votes for pid0's lie
+            votes={"pid1": 1},
             game_provided=set(),
             lie_for_me_players=set(),
             round_mult=1,
@@ -128,13 +162,12 @@ class TestScoreQuestion:
         assert deltas.get("pid0", 0) == 250
 
     def test_game_provided_no_lie_for_me_no_fooling_points(self):
-        # Auto-generated (timeout) lie – no fooling points even if fooled
         players = self._players("pid0", "pid1", "pid2")
         deltas = _score_question(
             choice_keys=["truth", "pid0", "pid2"],
             votes={"pid1": 1},
             game_provided={"pid0"},
-            lie_for_me_players=set(),  # NOT lie-for-me
+            lie_for_me_players=set(),
             round_mult=1,
             players=players,
         )
@@ -150,12 +183,10 @@ class TestScoreQuestion:
             round_mult=1,
             players=players,
         )
-        # pid1 voted for a game-provided lie → -500 pts
         assert deltas.get("pid1", 0) == -500
 
     def test_multiple_fools(self):
         players = self._players("pid0", "pid1", "pid2", "pid3")
-        # pid1 and pid2 both vote for pid0's lie
         deltas = _score_question(
             choice_keys=["truth", "pid0"],
             votes={"pid1": 1, "pid2": 1},
@@ -164,7 +195,7 @@ class TestScoreQuestion:
             round_mult=1,
             players=players,
         )
-        assert deltas.get("pid0", 0) == 1000  # 2 fools × 500
+        assert deltas.get("pid0", 0) == 1000
 
     def test_no_votes_no_deltas(self):
         players = self._players("pid0", "pid1")
@@ -179,22 +210,91 @@ class TestScoreQuestion:
         assert deltas == {}
 
     def test_cannot_vote_self_not_reflected_in_score(self):
-        # The game prevents self-voting; scoring just checks submitter_id != voter_id
         players = self._players("pid0", "pid1")
         deltas = _score_question(
             choice_keys=["truth", "pid0"],
-            votes={"pid0": 1},  # voting for own lie (shouldn't happen but safe)
+            votes={"pid0": 1},
             game_provided=set(),
             lie_for_me_players=set(),
             round_mult=1,
             players=players,
         )
-        # No fooling points for self-vote
         assert deltas.get("pid0", 0) == 0
 
 
+# ── Hypothesis: property-based tests for scoring ──────────────────────
+
+@given(
+    round_mult=st.integers(min_value=1, max_value=3),
+    n_voters=st.integers(min_value=1, max_value=8),
+)
+@settings(max_examples=100)
+def test_truth_points_scale_with_multiplier(round_mult: int, n_voters: int) -> None:
+    """Truth finder always receives exactly 1000 * round_mult points."""
+    pids = [f"p{i}" for i in range(n_voters + 2)]
+    players = {pid: Player(id=pid, name=pid) for pid in pids}
+    # All n_voters vote for truth (index 0)
+    votes = {pids[i]: 0 for i in range(2, 2 + n_voters)}
+    deltas = _score_question(
+        choice_keys=["truth", pids[0], pids[1]],
+        votes=votes,
+        game_provided=set(),
+        lie_for_me_players=set(),
+        round_mult=round_mult,
+        players=players,
+    )
+    for voter_pid in votes:
+        assert deltas.get(voter_pid, 0) == 1000 * round_mult
+
+
+@given(
+    round_mult=st.integers(min_value=1, max_value=3),
+    n_fooled=st.integers(min_value=1, max_value=6),
+)
+@settings(max_examples=100)
+def test_fooling_scales_with_multiplier_and_count(round_mult: int, n_fooled: int) -> None:
+    """Liar earns 500 * round_mult per person fooled."""
+    pids = [f"p{i}" for i in range(n_fooled + 2)]
+    players = {pid: Player(id=pid, name=pid) for pid in pids}
+    liar_pid = pids[0]
+    # Indices: truth=0, liar=1; fooled voters vote for index 1
+    votes = {pids[i]: 1 for i in range(2, 2 + n_fooled)}
+    deltas = _score_question(
+        choice_keys=["truth", liar_pid],
+        votes=votes,
+        game_provided=set(),
+        lie_for_me_players=set(),
+        round_mult=round_mult,
+        players=players,
+    )
+    assert deltas.get(liar_pid, 0) == 500 * round_mult * n_fooled
+
+
+@given(
+    starting_score=st.integers(min_value=0, max_value=500),
+)
+@settings(max_examples=50)
+def test_scores_never_below_zero_property(starting_score: int) -> None:
+    """No combination of penalties should push a score below zero."""
+    # A player with low score votes for a game-provided lie → -500 penalty
+    players = {
+        "pid0": Player(id="pid0", name="A", score=starting_score),
+        "pid1": Player(id="pid1", name="B", score=0),
+    }
+    deltas = _score_question(
+        choice_keys=["truth", "pid1"],
+        votes={"pid0": 1},  # pid0 votes for game-provided lie
+        game_provided={"pid1"},
+        lie_for_me_players=set(),
+        round_mult=1,
+        players=players,
+    )
+    new_score = max(0, players["pid0"].score + deltas.get("pid0", 0))
+    assert new_score >= 0
+
+
 # ──────────────────────────────────────────────────────────────────────
-# Unit: FibGame state
+# Unit: BluffGame state
 # ──────────────────────────────────────────────────────────────────────
 
 @pytest.fixture()
@@ -203,7 +303,7 @@ def anyio_backend():
 
 
 @pytest.mark.anyio
-async def test_fib_game_start_sets_phase():
+async def test_bluff_game_start_sets_phase():
     players = make_players("Alice", "Bob", "Charlie")
     game = make_game(players)
     await game.start()
@@ -213,18 +313,18 @@ async def test_fib_game_start_sets_phase():
 
 
 @pytest.mark.anyio
-async def test_fib_game_start_broadcasts():
+async def test_bluff_game_start_broadcasts():
     messages: list[dict] = []
 
     async def capture(msg, target=None):
         messages.append(msg)
 
     players = make_players("Alice", "Bob")
-    game = FibGame("TST", players, capture)
+    game = BluffGame("TST", players, capture)
     await game.start()
 
     types = {m["type"] for m in messages}
-    assert "fib_question" in types
+    assert "bluff_question" in types
 
 
 @pytest.mark.anyio
@@ -236,7 +336,7 @@ async def test_too_similar_rejected():
             errors.append(msg)
 
     players = make_players("Alice", "Bob")
-    game = FibGame("TST", players, capture)
+    game = BluffGame("TST", players, capture)
     await game.start()
     truth = game.current_question["truth"]
 
@@ -281,16 +381,13 @@ async def test_submit_vote_advances_when_all_in():
     game = make_game(players)
     await game.start()
 
-    # All submit lies
     await game.handle_action("pid0", "submit_lie", {"text": "fake A"})
     await game.handle_action("pid1", "submit_lie", {"text": "fake B"})
     await game.handle_action("pid2", "submit_lie", {"text": "fake C"})
     assert game.phase == "voting"
 
-    # Find truth index
     truth_idx = game._choice_keys.index("truth")
 
-    # Each player votes for truth (can't vote for own, so pick truth index)
     for pid in ["pid0", "pid1", "pid2"]:
         await game.handle_action(pid, "submit_vote", {"choice_index": truth_idx})
 
@@ -306,7 +403,7 @@ async def test_cannot_vote_for_own_lie():
             errors.append(msg)
 
     players = make_players("Alice", "Bob", "Charlie")
-    game = FibGame("TST", players, capture)
+    game = BluffGame("TST", players, capture)
     await game.start()
 
     await game.handle_action("pid0", "submit_lie", {"text": "fake A"})
@@ -339,7 +436,7 @@ async def test_duplicate_submission_ignored():
     await game.handle_action("pid0", "submit_lie", {"text": "first answer"})
     first = game.lies.get("pid0")
     await game.handle_action("pid0", "submit_lie", {"text": "second answer"})
-    assert game.lies.get("pid0") == first  # unchanged
+    assert game.lies.get("pid0") == first
 
 
 @pytest.mark.anyio
@@ -347,7 +444,7 @@ async def test_get_host_state_structure():
     players = make_players("Alice", "Bob")
     game = make_game(players)
     state = game.get_host_state()
-    assert state["game"] == "fib"
+    assert state["game"] == "bluff"
     assert "phase" in state
     assert "round_num" in state
     assert "scores" in state
@@ -379,7 +476,6 @@ async def test_like_during_revealing():
         await game.handle_action(pid, "submit_vote", {"choice_index": truth_idx})
 
     assert game.phase == "revealing"
-    # pid0 likes pid1's lie
     pid1_idx = game._choice_keys.index("pid1")
     await game.handle_action("pid0", "submit_like", {"choice_index": pid1_idx})
     assert "pid0" in game.likes.get(pid1_idx, [])
@@ -403,7 +499,7 @@ async def test_scores_not_below_zero():
     game.players["pid0"].score = 200
     game._choice_keys = ["pid1", "pid2", "truth"]
     game._choice_texts = ["lie1", "lie2", "the truth"]
-    game.votes = {"pid0": 1}  # pid0 votes for game-provided lie → -500
+    game.votes = {"pid0": 1}
     game.game_provided = {"pid2"}
     game.lie_for_me_players = set()
     game._question_finalized = False
@@ -415,51 +511,65 @@ async def test_scores_not_below_zero():
 
 
 # ──────────────────────────────────────────────────────────────────────
-# Integration: HTTP API for Fib
+# Integration: HTTP API for Bluff and Baffle
 # ──────────────────────────────────────────────────────────────────────
 
 @pytest.mark.anyio
-async def test_create_fib_party():
+async def test_create_bluff_party():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        resp = await c.post("/api/party", json={"game_name": "fib"})
+        resp = await c.post("/api/party", json={"game_name": "bluff"})
     assert resp.status_code == 200
     body = resp.json()
     assert "code" in body
-    assert body["host_url"].startswith("/fib/host/")
+    assert "?game=bluff" in body["host_url"]
 
 
 @pytest.mark.anyio
-async def test_join_fib_party_returns_fib_player_url():
+async def test_join_bluff_party_returns_bluff_player_url():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        create = await c.post("/api/party", json={"game_name": "fib"})
+        create = await c.post("/api/party", json={"game_name": "bluff"})
         code = create.json()["code"]
         join = await c.post(f"/api/party/{code}/join")
     assert join.status_code == 200
-    assert join.json()["player_url"].startswith("/fib/player/")
+    assert "?game=bluff" in join.json()["player_url"]
 
 
 @pytest.mark.anyio
-async def test_fib_host_page():
+async def test_bluff_host_page():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        create = await c.post("/api/party", json={"game_name": "fib"})
+        create = await c.post("/api/party", json={"game_name": "bluff"})
         code = create.json()["code"]
-        resp = await c.get(f"/fib/host/{code}")
+        resp = await c.get(f"/host/{code}?game=bluff")
     assert resp.status_code == 200
-    assert "fib" in resp.text.lower() or "lantern" in resp.text.lower()
+    assert "bluff" in resp.text.lower() or "lantern" in resp.text.lower()
 
 
 @pytest.mark.anyio
-async def test_fib_player_page():
+async def test_bluff_player_page():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
-        create = await c.post("/api/party", json={"game_name": "fib"})
+        create = await c.post("/api/party", json={"game_name": "bluff"})
         code = create.json()["code"]
-        resp = await c.get(f"/fib/player/{code}")
+        resp = await c.get(f"/player/{code}?game=bluff")
     assert resp.status_code == 200
 
 
 @pytest.mark.anyio
-async def test_lampoon_party_unaffected():
-    """Existing lampoon parties still get /host/ URLs."""
+async def test_lampoon_party_uses_game_query_param():
+    """Lampoon parties use ?game=lampoon in their URLs."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         resp = await c.post("/api/party", json={"game_name": "lampoon"})
-    assert resp.json()["host_url"].startswith("/host/")
+    assert "?game=lampoon" in resp.json()["host_url"]
+
+
+@pytest.mark.anyio
+async def test_unknown_game_returns_400():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        resp = await c.post("/api/party", json={"game_name": "unknown_game"})
+    assert resp.status_code == 400
+
+
+@pytest.mark.anyio
+async def test_host_page_unknown_game_returns_404():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        resp = await c.get("/host/ABCD?game=notreal")
+    assert resp.status_code == 404

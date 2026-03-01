@@ -164,6 +164,26 @@
       margin-bottom: 1rem;
     }
 
+    select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1.5px solid rgba(245,166,35,0.2);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+      padding: 0.65rem 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 1rem;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239080b0' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+    }
+    select:focus { border-color: var(--primary); }
+    select option { background: var(--surface2); color: var(--text); }
+
     footer {
       margin-top: 3rem;
       color: var(--text-muted);
@@ -182,26 +202,19 @@
 
 <div class="cards">
 
-  <!-- Create Lampoon Party -->
+  <!-- Create Party (single card, game selector) -->
   <div class="card">
     <h2>🎉 Create a Party</h2>
-    <div class="game-badge">✏️ Lampoon</div>
     <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1.2rem;">
       You'll be the host on the big screen. Share your party code with friends!
     </p>
+    <label for="gameSelect">Choose a game</label>
+    <select id="gameSelect">
+      <option value="lampoon">✏️ Lampoon – creative fill-in-the-blank</option>
+      <option value="bluff">🕵️ Bluff &amp; Baffle – trivia bluffing</option>
+    </select>
     <button class="btn btn-primary" id="createBtn">Create Party</button>
     <div class="error-msg" id="createError"></div>
-  </div>
-
-  <!-- Create Fib Party -->
-  <div class="card">
-    <h2>🕵️ Create a Fib Party</h2>
-    <div class="game-badge">🔍 Fib</div>
-    <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1.2rem;">
-      Bluff your friends with fake trivia answers. The best liar wins!
-    </p>
-    <button class="btn btn-primary" id="createFibBtn">Create Fib Party</button>
-    <div class="error-msg" id="createFibError"></div>
   </div>
 
   <!-- Join Party -->
@@ -218,18 +231,17 @@
 </div>
 
 <footer>
-  Lantern Party &copy; 2024 &mdash; Lampoon &amp; Fib games for friends
+  Lantern Party &copy; 2026 &mdash; MIT License
 </footer>
 
 <script>
-  const createBtn    = document.getElementById('createBtn');
-  const createFibBtn = document.getElementById('createFibBtn');
-  const joinBtn      = document.getElementById('joinBtn');
-  const codeInput    = document.getElementById('codeInput');
-  const nameInput    = document.getElementById('nameInput');
-  const createError    = document.getElementById('createError');
-  const createFibError = document.getElementById('createFibError');
-  const joinError      = document.getElementById('joinError');
+  const createBtn  = document.getElementById('createBtn');
+  const gameSelect = document.getElementById('gameSelect');
+  const joinBtn    = document.getElementById('joinBtn');
+  const codeInput  = document.getElementById('codeInput');
+  const nameInput  = document.getElementById('nameInput');
+  const createError = document.getElementById('createError');
+  const joinError   = document.getElementById('joinError');
 
   function showError(el, msg) {
     el.textContent = msg;
@@ -243,10 +255,11 @@
   });
   nameInput.addEventListener('input', () => clearError(joinError));
 
-  async function createParty(gameName, btn, errEl) {
-    clearError(errEl);
-    btn.disabled = true;
-    btn.textContent = 'Creating…';
+  createBtn.addEventListener('click', async () => {
+    clearError(createError);
+    const gameName = gameSelect.value;
+    createBtn.disabled = true;
+    createBtn.textContent = 'Creating…';
     try {
       const res = await fetch('/api/party', {
         method: 'POST',
@@ -257,14 +270,11 @@
       const data = await res.json();
       window.location.href = data.host_url;
     } catch (e) {
-      showError(errEl, 'Could not create party. Is the server running?');
-      btn.disabled = false;
-      btn.textContent = gameName === 'fib' ? 'Create Fib Party' : 'Create Party';
+      showError(createError, 'Could not create party. Is the server running?');
+      createBtn.disabled = false;
+      createBtn.textContent = 'Create Party';
     }
-  }
-
-  createBtn.addEventListener('click', () => createParty('lampoon', createBtn, createError));
-  createFibBtn.addEventListener('click', () => createParty('fib', createFibBtn, createFibError));
+  });
 
   joinBtn.addEventListener('click', async () => {
     const code = codeInput.value.trim().toUpperCase();
@@ -282,7 +292,6 @@
       if (res.status === 400) { showError(joinError, 'Game already started – too late!'); return; }
       if (!res.ok) throw new Error('Server error');
       const data = await res.json();
-      // Store name; player page will use it for the join WS message
       sessionStorage.setItem('playerName', name);
       window.location.href = data.player_url;
     } catch (e) {
@@ -293,7 +302,6 @@
     }
   });
 
-  // Allow Enter key in join fields
   [codeInput, nameInput].forEach(el =>
     el.addEventListener('keydown', e => { if (e.key === 'Enter') joinBtn.click(); })
   );

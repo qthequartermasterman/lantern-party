@@ -8,7 +8,8 @@ from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from backend.games.fib.game import FibGame
+from backend.games.base import BaseGame
+from backend.games.bluff.game import BluffGame
 from backend.games.lampoon.game import LampoonGame, Player
 from backend.party_manager import party_manager
 
@@ -82,8 +83,9 @@ async def _handle_host_message(
             return
 
         party.state = "playing"
-        if party.game_name == "fib":
-            game: LampoonGame | FibGame = FibGame(
+        game: BaseGame
+        if party.game_name == "bluff":
+            game = BluffGame(
                 party_code=party_code,
                 players=party.players,
                 broadcast=party.broadcast,

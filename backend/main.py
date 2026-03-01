@@ -32,6 +32,9 @@ app.include_router(ws_router)
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
+# Games whose static files live under frontend/<game_slug>/
+_KNOWN_GAMES = {"lampoon", "bluff"}
+
 
 # ──────────────────────────────────────────────
 # HTML page routes
@@ -43,23 +46,23 @@ async def index() -> FileResponse:
 
 
 @app.get("/host/{party_code}", include_in_schema=False)
-async def host_page(party_code: str) -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "host.html")
-
-
-@app.get("/fib/host/{party_code}", include_in_schema=False)
-async def fib_host_page(party_code: str) -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "fib_host.html")
+async def host_page(party_code: str, game: str = "") -> FileResponse:
+    if game not in _KNOWN_GAMES:
+        raise HTTPException(status_code=404, detail="Unknown game")
+    path = FRONTEND_DIR / game / "host.html"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Game page not found")
+    return FileResponse(path)
 
 
 @app.get("/player/{party_code}", include_in_schema=False)
-async def player_page(party_code: str) -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "player.html")
-
-
-@app.get("/fib/player/{party_code}", include_in_schema=False)
-async def fib_player_page(party_code: str) -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "fib_player.html")
+async def player_page(party_code: str, game: str = "") -> FileResponse:
+    if game not in _KNOWN_GAMES:
+        raise HTTPException(status_code=404, detail="Unknown game")
+    path = FRONTEND_DIR / game / "player.html"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Game page not found")
+    return FileResponse(path)
 
 
 # ──────────────────────────────────────────────
@@ -67,17 +70,18 @@ async def fib_player_page(party_code: str) -> FileResponse:
 # ──────────────────────────────────────────────
 
 class CreatePartyRequest(BaseModel):
-    game_name: str = "lampoon"
+    game_name: str
 
 
 @app.post("/api/party")
-async def create_party(body: CreatePartyRequest = CreatePartyRequest()) -> dict:
+async def create_party(body: CreatePartyRequest) -> dict:
+    if body.game_name not in _KNOWN_GAMES:
+        raise HTTPException(status_code=400, detail="Unknown game")
     party = party_manager.create_party(game_name=body.game_name)
-    if body.game_name == "fib":
-        host_url = f"/fib/host/{party.code}"
-    else:
-        host_url = f"/host/{party.code}"
-    return {"code": party.code, "host_url": host_url}
+    return {
+        "code": party.code,
+        "host_url": f"/host/{party.code}?game={body.game_name}",
+    }
 
 
 class JoinPartyRequest(BaseModel):
@@ -92,11 +96,7 @@ async def join_party(code: str) -> dict:
     if party.state != "lobby":
         raise HTTPException(status_code=400, detail="Game already in progress")
     upper = code.upper()
-    if party.game_name == "fib":
-        player_url = f"/fib/player/{upper}"
-    else:
-        player_url = f"/player/{upper}"
-    return {"player_url": player_url}
+    return {"player_url": f"/player/{upper}?game={party.game_name}"}
 
 
 # ──────────────────────────────────────────────

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lantern Party – Bluff &amp; Baffle Host 🏮</title>
+  <link rel="stylesheet" href="host.css" />
+</head>
+<body>
+
+<div id="top-bar">
+  <span class="brand">🏮 Lantern Party — Bluff &amp; Baffle</span>
+  <span id="party-code-display"></span>
+  <span id="timer-bar"></span>
+</div>
+
+<div id="main">
+
+  <!-- ── Lobby ── -->
+  <div class="screen active" id="lobby-screen">
+    <h2>Waiting for players…</h2>
+    <div class="lobby-code" id="lobby-code"></div>
+    <p class="lobby-hint">Players join at <strong>lanternparty.app</strong> with the code above</p>
+    <div id="player-grid"></div>
+    <button id="start-btn" disabled>Start Bluff &amp; Baffle</button>
+  </div>
+
+  <!-- ── Collecting lies ── -->
+  <div class="screen" id="collecting-screen">
+    <div class="round-badge">
+      <span class="rbadge" id="round-badge"></span>
+      <span class="rbadge" id="question-badge"></span>
+    </div>
+    <div class="question-card">
+      <div class="q-meta" id="collect-category"></div>
+      <div class="q-prompt" id="collect-prompt"></div>
+    </div>
+    <div class="progress-row">
+      <span class="progress-label">Lies submitted</span>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="lies-bar" style="width:0%"></div></div>
+      <span class="progress-count" id="lies-count">0/0</span>
+    </div>
+  </div>
+
+  <!-- ── Voting ── -->
+  <div class="screen" id="voting-screen">
+    <div class="round-badge">
+      <span class="rbadge" id="vote-round-badge"></span>
+      <span class="rbadge" id="vote-q-badge"></span>
+    </div>
+    <div class="question-card">
+      <div class="q-meta" id="vote-category"></div>
+      <div class="q-prompt" id="vote-prompt"></div>
+    </div>
+    <div class="progress-row">
+      <span class="progress-label">Votes cast</span>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="votes-bar" style="width:0%"></div></div>
+      <span class="progress-count" id="votes-count">0/0</span>
+    </div>
+    <div class="choice-grid" id="vote-choice-grid"></div>
+  </div>
+
+  <!-- ── Revealing ── -->
+  <div class="screen" id="revealing-screen">
+    <div class="question-card">
+      <div class="q-prompt" id="reveal-prompt"></div>
+    </div>
+    <div class="choice-grid" id="reveal-choice-grid"></div>
+    <button id="next-btn">Next →</button>
+  </div>
+
+  <!-- ── Scores ── -->
+  <div class="screen" id="scores-screen">
+    <div class="scores-header" id="scores-header">Scores</div>
+    <ul class="scores-list" id="scores-list"></ul>
+  </div>
+
+  <!-- ── Game Over ── -->
+  <div class="screen" id="gameover-screen">
+    <div class="winners-banner" id="winners-banner"></div>
+    <div class="thumbs-cup" id="thumbs-cup"></div>
+    <div class="scores-header">Final Scores</div>
+    <ul class="scores-list" id="final-scores-list"></ul>
+  </div>
+
+</div><!-- #main -->
+
+<script src="host.js"></script>
+</body>
+</html>

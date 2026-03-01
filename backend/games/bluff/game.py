@@ -1,5 +1,5 @@
 """
-Fib – Lantern Party bluffing trivia game.
+Bluff and Baffle – Lantern Party bluffing trivia game.
 
 State machine per game:
   lobby → collecting_lies → voting → revealing → [next question]
@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, TYPE_CHECKING
 
 from backend.games.base import BaseGame
-from backend.games.fib.prompts import FINAL_PROMPTS, LIE_BANK, ROUND_PROMPTS
+from backend.games.bluff.prompts import FINAL_PROMPTS, ROUND_PROMPTS
 
 if TYPE_CHECKING:
     pass
@@ -125,9 +125,9 @@ def _score_question(
 # Game class
 # ─────────────────────────────────────────────────────────────
 
-class FibGame(BaseGame):
+class BluffGame(BaseGame):
     """
-    Fib – the Lantern Party bluffing trivia game.
+    Bluff and Baffle – the Lantern Party bluffing trivia game.
 
     Three rounds (R1, R2, R3-final).  Each question the host displays a
     trivia fact with one word/phrase blanked out.  Players invent lies;
@@ -195,7 +195,7 @@ class FibGame(BaseGame):
 
     def get_host_state(self) -> dict[str, Any]:
         state: dict[str, Any] = {
-            "game": "fib",
+            "game": "bluff",
             "phase": self.phase,
             "round_num": self.round_num,
             "scores": self._scores_list(),
@@ -224,7 +224,7 @@ class FibGame(BaseGame):
 
     def get_player_state(self, player_id: str) -> dict[str, Any]:
         state: dict[str, Any] = {
-            "game": "fib",
+            "game": "bluff",
             "phase": self.phase,
             "round_num": self.round_num,
             "scores": self._scores_list(),
@@ -330,7 +330,7 @@ class FibGame(BaseGame):
 
         await self.broadcast(
             {
-                "type": "fib_question",
+                "type": "bluff_question",
                 "data": {
                     "prompt": self.current_question["prompt"],
                     "category": self.current_question.get("category", ""),
@@ -394,7 +394,7 @@ class FibGame(BaseGame):
             {
                 "type": "game_state",
                 "data": {
-                    "game": "fib",
+                    "game": "bluff",
                     "phase": self.phase,
                     "lies_received": len(self.lies),
                     "lies_expected": self._active_player_count(),
@@ -408,12 +408,27 @@ class FibGame(BaseGame):
             await self._begin_voting()
 
     def _generate_lie(self) -> str:
-        """Return a lie from the bank, avoiding the truth."""
+        """Return a contextual lie from the per-prompt lie bank, falling back to the prompt's lies list."""
         truth = (self.current_question["truth"] if self.current_question else "").lower()
-        candidates = [l for l in LIE_BANK if l.lower() != truth]
         existing = {v.lower() for v in self.lies.values()}
+        # Prefer per-prompt lies for contextual relevance
+        per_prompt_lies: list[str] = (
+            self.current_question.get("lies", []) if self.current_question else []
+        )
+        candidates = [lie for lie in per_prompt_lies if lie.lower() != truth]
         fresh = [c for c in candidates if c.lower() not in existing]
-        return random.choice(fresh if fresh else candidates)
+        if fresh:
+            return random.choice(fresh)
+        if candidates:
+            return random.choice(candidates)
+        # Fallback: generate a generic plausible-sounding lie
+        fallback = [
+            "The number seventeen", "A type of cheese", "The Moon", "Napoleon",
+            "1847", "Three times a year", "Belgium", "A golden retriever",
+            "The colour mauve", "Sir Francis Drake",
+        ]
+        fb_candidates = [f for f in fallback if f.lower() != truth and f.lower() not in existing]
+        return random.choice(fb_candidates if fb_candidates else fallback)
 
     # ── Voting phase ─────────────────────────────────────────────────────
 
@@ -449,7 +464,7 @@ class FibGame(BaseGame):
                 for i, t in enumerate(self._choice_texts)
             ],
         }
-        await self.broadcast({"type": "fib_voting", "data": voting_data}, None)
+        await self.broadcast({"type": "bluff_voting", "data": voting_data}, None)
         await self._broadcast_game_state()
         await self._start_timer(30, self._on_voting_expire)
 
@@ -486,7 +501,7 @@ class FibGame(BaseGame):
             {
                 "type": "game_state",
                 "data": {
-                    "game": "fib",
+                    "game": "bluff",
                     "phase": self.phase,
                     "votes_received": len(self.votes),
                     "votes_expected": self._active_player_count(),
@@ -525,7 +540,7 @@ class FibGame(BaseGame):
         self.phase = "revealing"
         reveal_data = self._build_reveal_data(include_truth=True)
         reveal_data["score_deltas"] = deltas
-        await self.broadcast({"type": "fib_reveal", "data": reveal_data}, None)
+        await self.broadcast({"type": "bluff_reveal", "data": reveal_data}, None)
         await self._broadcast_game_state()
         await self._start_timer(15, self._on_revealing_expire)
 
@@ -623,7 +638,7 @@ class FibGame(BaseGame):
         self.phase = "scores"
         await self.broadcast(
             {
-                "type": "fib_scores",
+                "type": "bluff_scores",
                 "data": {
                     "scores": self._scores_list(),
                     "round_complete": self.round_num,
