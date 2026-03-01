@@ -483,6 +483,10 @@
 
 </div><!-- /main -->
 
+<div id="party-ending-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface2);border-top:2px solid var(--primary);color:var(--primary);font-size:1rem;font-weight:700;text-align:center;padding:0.75rem 1rem;z-index:9999;">
+  🏮 Party is ending… redirecting in <span id="redirect-countdown">5</span>s
+</div>
+
 <div id="score-display">Your score: <span id="my-score">0</span></div>
 
 <script>
@@ -628,7 +632,7 @@
     }
 
     if (type === 'party_ended') {
-      window.location.href = '/';
+      startRedirectCountdown(5);
     }
   }
 
@@ -944,6 +948,25 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  // ── Party-ending redirect countdown ───────────────────────────────────
+  let _redirectInterval = null;
+  function startRedirectCountdown(seconds) {
+    if (_redirectInterval) return;  // already counting down
+    const banner = document.getElementById('party-ending-banner');
+    const countEl = document.getElementById('redirect-countdown');
+    let remaining = seconds;
+    countEl.textContent = remaining;
+    banner.style.display = 'block';
+    _redirectInterval = setInterval(() => {
+      remaining -= 1;
+      countEl.textContent = remaining;
+      if (remaining <= 0) {
+        clearInterval(_redirectInterval);
+        window.location.href = '/';
+      }
+    }, 1000);
   }
 </script>
 </body>

@@ -234,3 +234,19 @@ textarea { resize: none; min-height: 90px; font-family: inherit; }
 .go-title { font-size: 1.8rem; font-weight: 900; color: var(--primary); margin-bottom: 0.3rem; }
 .go-sub { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem; }
 .thumbs-cup { font-size: 0.95rem; color: var(--purple); margin-bottom: 1.5rem; }
+
+/* ── Party-ending redirect banner ── */
+#party-ending-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface2);
+  border-top: 2px solid var(--primary);
+  color: var(--primary);
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 0.75rem 1rem;
+  z-index: 9999;
+}
