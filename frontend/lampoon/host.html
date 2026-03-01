@@ -504,6 +504,8 @@
       renderFinalReveal(data);
     } else if (type === 'game_over') {
       renderGameOver(data);
+    } else if (type === 'party_ended') {
+      window.location.href = '/';
     } else if (type === 'error') {
       document.getElementById('lobby-error').textContent = data.message;
     }

@@ -385,3 +385,27 @@ async def test_get_player_state_answering():
     state = game.get_player_state(pid)
     assert "prompts" in state
     assert isinstance(state["prompts"], list)
+
+
+@pytest.mark.anyio
+async def test_end_game_broadcasts_party_ended_and_deletes_party():
+    """After game over, a party_ended message is sent and the party is removed."""
+    from unittest.mock import patch
+
+    messages: list[dict] = []
+
+    async def capture(msg, target=None):
+        messages.append({"msg": msg, "target": target})
+
+    party = party_manager.create_party(game_name="lampoon")
+    players = make_players("Alice", "Bob")
+    game = LampoonGame(party.code, players, capture)
+
+    with patch("asyncio.sleep", new_callable=AsyncMock):
+        await game._end_game()
+
+    types_sent = [m["msg"]["type"] for m in messages]
+    assert "game_over" in types_sent
+    assert "party_ended" in types_sent
+    # Party should be removed from manager
+    assert party_manager.get_party(party.code) is None

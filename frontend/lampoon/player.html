@@ -626,6 +626,10 @@
     if (type === 'game_over') {
       renderGameOver(data);
     }
+
+    if (type === 'party_ended') {
+      window.location.href = '/';
+    }
   }
 
   // ── Game state dispatcher ─────────────────────────────────────────────

@@ -72,6 +72,7 @@ ws.addEventListener('message', e => {
   if (type === 'bluff_reveal')   { handleReveal(data); return; }
   if (type === 'bluff_scores')   { handleScores(data); return; }
   if (type === 'game_over')      { handleGameOver(data); return; }
+  if (type === 'party_ended')    { window.location.href = '/'; return; }
   if (type === 'game_state')     { handleGameState(data); return; }
   if (type === 'like_update')    { handleLikeUpdate(data); return; }
 });
