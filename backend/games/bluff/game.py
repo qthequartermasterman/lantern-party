@@ -46,6 +46,8 @@ class Player:
 
 QUESTIONS_PER_ROUND = 3
 _ROUND_MULT = {1: 1, 2: 2, 3: 3}
+_REVEAL_INTERVAL_SECONDS = 3   # delay between each auto-revealed card
+_REVEAL_BUFFER_SECONDS = 33    # extra time after all cards appear for host to click Next
 
 Broadcaster = Callable[[dict[str, Any], str | None], Awaitable[None]]
 
@@ -545,7 +547,7 @@ class BluffGame(BaseGame):
         reveal_data["score_deltas"] = deltas
         await self.broadcast({"type": "bluff_reveal", "data": reveal_data}, None)
         await self._broadcast_game_state()
-        await self._start_timer(15, self._on_revealing_expire)
+        await self._start_timer(len(self._choice_keys) * _REVEAL_INTERVAL_SECONDS + _REVEAL_BUFFER_SECONDS, self._on_revealing_expire)
 
     def _build_reveal_data(self, *, include_truth: bool = False) -> dict[str, Any]:
         """Build the reveal payload for host and players."""
