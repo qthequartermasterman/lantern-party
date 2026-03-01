@@ -8,6 +8,7 @@ from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from backend.games.fib.game import FibGame
 from backend.games.lampoon.game import LampoonGame, Player
 from backend.party_manager import party_manager
 
@@ -81,11 +82,18 @@ async def _handle_host_message(
             return
 
         party.state = "playing"
-        game = LampoonGame(
-            party_code=party_code,
-            players=party.players,
-            broadcast=party.broadcast,
-        )
+        if party.game_name == "fib":
+            game: LampoonGame | FibGame = FibGame(
+                party_code=party_code,
+                players=party.players,
+                broadcast=party.broadcast,
+            )
+        else:
+            game = LampoonGame(
+                party_code=party_code,
+                players=party.players,
+                broadcast=party.broadcast,
+            )
         party.game = game
         await game.start()
 
@@ -204,11 +212,7 @@ async def _handle_player_message(
                 {"type": "lobby_state", "data": _lobby_data(party)}, None
             )
 
-    elif party.game and action_type in (
-        "submit_answer",
-        "submit_vote",
-        "submit_final_votes",
-    ):
+    elif party.game and action_type not in ("join", "ready"):
         await party.game.handle_action(player_id, action_type, data)
 
 

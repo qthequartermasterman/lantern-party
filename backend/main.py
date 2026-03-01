@@ -47,9 +47,19 @@ async def host_page(party_code: str) -> FileResponse:
     return FileResponse(FRONTEND_DIR / "host.html")
 
 
+@app.get("/fib/host/{party_code}", include_in_schema=False)
+async def fib_host_page(party_code: str) -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "fib_host.html")
+
+
 @app.get("/player/{party_code}", include_in_schema=False)
 async def player_page(party_code: str) -> FileResponse:
     return FileResponse(FRONTEND_DIR / "player.html")
+
+
+@app.get("/fib/player/{party_code}", include_in_schema=False)
+async def fib_player_page(party_code: str) -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "fib_player.html")
 
 
 # ──────────────────────────────────────────────
@@ -63,7 +73,11 @@ class CreatePartyRequest(BaseModel):
 @app.post("/api/party")
 async def create_party(body: CreatePartyRequest = CreatePartyRequest()) -> dict:
     party = party_manager.create_party(game_name=body.game_name)
-    return {"code": party.code, "host_url": f"/host/{party.code}"}
+    if body.game_name == "fib":
+        host_url = f"/fib/host/{party.code}"
+    else:
+        host_url = f"/host/{party.code}"
+    return {"code": party.code, "host_url": host_url}
 
 
 class JoinPartyRequest(BaseModel):
@@ -77,7 +91,12 @@ async def join_party(code: str) -> dict:
         raise HTTPException(status_code=404, detail="Party not found")
     if party.state != "lobby":
         raise HTTPException(status_code=400, detail="Game already in progress")
-    return {"player_url": f"/player/{code.upper()}"}
+    upper = code.upper()
+    if party.game_name == "fib":
+        player_url = f"/fib/player/{upper}"
+    else:
+        player_url = f"/player/{upper}"
+    return {"player_url": player_url}
 
 
 # ──────────────────────────────────────────────
