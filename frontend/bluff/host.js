@@ -11,12 +11,24 @@ function show(screenId) {
 }
 
 function renderScores(scores, listEl) {
-  listEl.innerHTML = scores.map((s, i) => `
-    <li class="score-row">
-      <span class="score-rank ${i === 0 ? 'top' : ''}">${i + 1}</span>
-      <span class="score-name">${s.name}</span>
-      <span class="score-pts">${s.score.toLocaleString()}</span>
-    </li>`).join('');
+  listEl.innerHTML = '';
+  scores.forEach((s, i) => {
+    const li = document.createElement('li');
+    li.className = 'score-row';
+    const rankEl = document.createElement('span');
+    rankEl.className = 'score-rank' + (i === 0 ? ' top' : '');
+    rankEl.textContent = String(i + 1);
+    const nameEl = document.createElement('span');
+    nameEl.className = 'score-name';
+    nameEl.textContent = s.name;
+    const ptsEl = document.createElement('span');
+    ptsEl.className = 'score-pts';
+    ptsEl.textContent = s.score.toLocaleString();
+    li.appendChild(rankEl);
+    li.appendChild(nameEl);
+    li.appendChild(ptsEl);
+    listEl.appendChild(li);
+  });
 }
 
 function highlightPrompt(prompt) {
@@ -68,11 +80,21 @@ ws.addEventListener('message', e => {
 function handleLobby(data) {
   show('lobby-screen');
   const grid = document.getElementById('player-grid');
-  grid.innerHTML = data.players.map(p => `
-    <div class="player-tile ${p.ready ? 'ready' : ''}">
-      <div class="pname">${p.name}</div>
-      <div class="pstatus">${p.ready ? '✓ Ready' : 'Waiting…'}</div>
-    </div>`).join('');
+  grid.innerHTML = '';
+  data.players.forEach(p => {
+    const tile = document.createElement('div');
+    tile.classList.add('player-tile');
+    if (p.ready) tile.classList.add('ready');
+    const nameEl = document.createElement('div');
+    nameEl.className = 'pname';
+    nameEl.textContent = p.name;
+    const statusEl = document.createElement('div');
+    statusEl.className = 'pstatus';
+    statusEl.textContent = p.ready ? '✓ Ready' : 'Waiting…';
+    tile.appendChild(nameEl);
+    tile.appendChild(statusEl);
+    grid.appendChild(tile);
+  });
   const readyCount = data.players.filter(p => p.ready).length;
   const btn = document.getElementById('start-btn');
   btn.disabled = readyCount < 2;
@@ -143,11 +165,20 @@ function handleVoting(data) {
   updateProgress('votes-bar', 'votes-count', 0, 0);
 
   const grid = document.getElementById('vote-choice-grid');
-  grid.innerHTML = data.choices.map(c => `
-    <div class="choice-card">
-      <div class="choice-idx">Choice ${c.index + 1}</div>
-      <div class="choice-text">${c.text}</div>
-    </div>`).join('');
+  grid.innerHTML = '';
+  data.choices.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'choice-card';
+    const idxEl = document.createElement('div');
+    idxEl.className = 'choice-idx';
+    idxEl.textContent = `Choice ${c.index + 1}`;
+    const textEl = document.createElement('div');
+    textEl.className = 'choice-text';
+    textEl.textContent = c.text;
+    card.appendChild(idxEl);
+    card.appendChild(textEl);
+    grid.appendChild(card);
+  });
 
   document.getElementById('next-btn').classList.remove('visible');
   show('voting-screen');
@@ -158,27 +189,53 @@ function handleReveal(data) {
   document.getElementById('reveal-prompt').innerHTML = highlightPrompt(data.prompt);
 
   const grid = document.getElementById('reveal-choice-grid');
-  grid.innerHTML = data.choices.map(c => {
+  grid.innerHTML = '';
+  data.choices.forEach(c => {
     const isTruth = c.is_truth;
-    let footer = '';
+    const card = document.createElement('div');
+    card.className = 'choice-card' + (isTruth ? ' is-truth' : '');
     if (isTruth) {
-      footer = `<div class="choice-footer"><span class="choice-votes">${c.votes} vote${c.votes !== 1 ? 's' : ''}</span></div>`;
-    } else {
-      const gp = c.game_provided ? `<span class="game-provided-badge">auto</span>` : '';
-      footer = `
-        <div class="choice-footer">
-          <span class="choice-submitter">${c.submitter_name || '?'}${gp}</span>
-          &nbsp;·&nbsp;<span class="choice-votes">${c.votes} vote${c.votes !== 1 ? 's' : ''}</span>
-          &nbsp;· ❤️ <span id="likes-${c.index}">${c.likes || 0}</span>
-        </div>`;
+      const badge = document.createElement('div');
+      badge.className = 'truth-badge';
+      badge.textContent = '✓ Truth';
+      card.appendChild(badge);
     }
-    return `
-      <div class="choice-card ${isTruth ? 'is-truth' : ''}">
-        ${isTruth ? '<div class="truth-badge">✓ Truth</div>' : ''}
-        <div class="choice-text">${c.text}</div>
-        ${footer}
-      </div>`;
-  }).join('');
+    const textEl = document.createElement('div');
+    textEl.className = 'choice-text';
+    textEl.textContent = c.text;
+    card.appendChild(textEl);
+    const footer = document.createElement('div');
+    footer.className = 'choice-footer';
+    if (isTruth) {
+      const votesSpan = document.createElement('span');
+      votesSpan.className = 'choice-votes';
+      votesSpan.textContent = `${c.votes} vote${c.votes !== 1 ? 's' : ''}`;
+      footer.appendChild(votesSpan);
+    } else {
+      const submitterSpan = document.createElement('span');
+      submitterSpan.className = 'choice-submitter';
+      submitterSpan.textContent = c.submitter_name || '?';
+      footer.appendChild(submitterSpan);
+      if (c.game_provided) {
+        const gpBadge = document.createElement('span');
+        gpBadge.className = 'game-provided-badge';
+        gpBadge.textContent = 'auto';
+        footer.appendChild(gpBadge);
+      }
+      footer.appendChild(document.createTextNode(' · '));
+      const votesSpan = document.createElement('span');
+      votesSpan.className = 'choice-votes';
+      votesSpan.textContent = `${c.votes} vote${c.votes !== 1 ? 's' : ''}`;
+      footer.appendChild(votesSpan);
+      footer.appendChild(document.createTextNode(' · ❤️ '));
+      const likesSpan = document.createElement('span');
+      likesSpan.id = `likes-${c.index}`;
+      likesSpan.textContent = String(c.likes || 0);
+      footer.appendChild(likesSpan);
+    }
+    card.appendChild(footer);
+    grid.appendChild(card);
+  });
 
   const nextBtn = document.getElementById('next-btn');
   nextBtn.classList.add('visible');

@@ -157,9 +157,14 @@ function handleVoting(data) {
   document.getElementById('vote-prompt').innerHTML = highlightBlank(data.prompt);
 
   const list = document.getElementById('vote-list');
-  list.innerHTML = data.choices.map(c => `
-    <li class="vote-item" data-index="${c.index}">${c.text}</li>
-  `).join('');
+  list.innerHTML = '';
+  data.choices.forEach(c => {
+    const li = document.createElement('li');
+    li.className = 'vote-item';
+    li.dataset.index = String(c.index);
+    li.textContent = c.text;
+    list.appendChild(li);
+  });
 
   document.getElementById('vote-submitted').style.display = 'none';
   document.getElementById('vote-list').style.display = 'block';
@@ -190,32 +195,63 @@ function handleReveal(data) {
   document.getElementById('reveal-prompt').innerHTML = highlightBlank(data.prompt);
 
   const list = document.getElementById('reveal-list');
-  list.innerHTML = data.choices.map(c => {
+  list.innerHTML = '';
+  data.choices.forEach(c => {
     const isTruth = c.is_truth;
     const iVoted = myVoteIndex === c.index;
     const isOwnLie = !isTruth && c.submitter_id === actualPid;
 
-    let footerHtml = '';
+    const li = document.createElement('li');
+    li.classList.add('reveal-item');
+    if (isTruth) li.classList.add('truth-item');
+    if (iVoted && isTruth) li.classList.add('voted-correct');
+
     if (isTruth) {
-      footerHtml = `<span>${iVoted ? '✓ You got it!' : ''}</span>`;
-    } else {
-      const gp = c.game_provided ? ' (auto)' : '';
-      const likeBtn = (!isOwnLie && !isTruth)
-        ? `<button class="like-btn" data-index="${c.index}">👍 <span id="likes-${c.index}">${c.likes || 0}</span></button>`
-        : '';
-      footerHtml = `
-        <span class="reveal-submitter">${c.submitter_name || '?'}${gp}${isOwnLie ? ' (you)' : ''}</span>
-        <span>${c.votes} vote${c.votes !== 1 ? 's' : ''}</span>
-        ${likeBtn}`;
+      const badge = document.createElement('div');
+      badge.className = 'reveal-truth-badge';
+      badge.textContent = '✓ Truth';
+      li.appendChild(badge);
     }
 
-    return `
-      <li class="reveal-item ${isTruth ? 'truth-item' : ''} ${iVoted && isTruth ? 'voted-correct' : ''}">
-        ${isTruth ? '<div class="reveal-truth-badge">✓ Truth</div>' : ''}
-        <div class="reveal-answer">${c.text}</div>
-        <div class="reveal-footer">${footerHtml}</div>
-      </li>`;
-  }).join('');
+    const answerDiv = document.createElement('div');
+    answerDiv.className = 'reveal-answer';
+    answerDiv.textContent = c.text;
+    li.appendChild(answerDiv);
+
+    const footerDiv = document.createElement('div');
+    footerDiv.className = 'reveal-footer';
+
+    if (isTruth) {
+      const span = document.createElement('span');
+      span.textContent = iVoted ? '✓ You got it!' : '';
+      footerDiv.appendChild(span);
+    } else {
+      const submitterSpan = document.createElement('span');
+      submitterSpan.className = 'reveal-submitter';
+      const gp = c.game_provided ? ' (auto)' : '';
+      submitterSpan.textContent = (c.submitter_name || '?') + gp + (isOwnLie ? ' (you)' : '');
+      footerDiv.appendChild(submitterSpan);
+
+      const votesSpan = document.createElement('span');
+      votesSpan.textContent = `${c.votes} vote${c.votes !== 1 ? 's' : ''}`;
+      footerDiv.appendChild(votesSpan);
+
+      if (!isOwnLie) {
+        const likeBtn = document.createElement('button');
+        likeBtn.className = 'like-btn';
+        likeBtn.dataset.index = String(c.index);
+        likeBtn.appendChild(document.createTextNode('👍 '));
+        const likesSpan = document.createElement('span');
+        likesSpan.id = `likes-${c.index}`;
+        likesSpan.textContent = String(c.likes || 0);
+        likeBtn.appendChild(likesSpan);
+        footerDiv.appendChild(likeBtn);
+      }
+    }
+
+    li.appendChild(footerDiv);
+    list.appendChild(li);
+  });
 
   show('revealing-screen');
 }
@@ -241,12 +277,25 @@ function handleScores(data) {
   document.getElementById('scores-title').textContent =
     data.round_complete ? `After Round ${data.round_complete}` : 'Scores';
   const scores = data.scores || [];
-  document.getElementById('scores-list-p').innerHTML = scores.map((s, i) => `
-    <div class="score-row">
-      <span class="score-rank ${i === 0 ? 'top' : ''}">${i + 1}</span>
-      <span class="score-name">${s.name}${s.id === actualPid ? ' (you)' : ''}</span>
-      <span class="score-pts">${s.score.toLocaleString()}</span>
-    </div>`).join('');
+  const listEl = document.getElementById('scores-list-p');
+  listEl.innerHTML = '';
+  scores.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'score-row';
+    const rankEl = document.createElement('span');
+    rankEl.className = 'score-rank' + (i === 0 ? ' top' : '');
+    rankEl.textContent = String(i + 1);
+    const nameEl = document.createElement('span');
+    nameEl.className = 'score-name';
+    nameEl.textContent = s.name + (s.id === actualPid ? ' (you)' : '');
+    const ptsEl = document.createElement('span');
+    ptsEl.className = 'score-pts';
+    ptsEl.textContent = s.score.toLocaleString();
+    div.appendChild(rankEl);
+    div.appendChild(nameEl);
+    div.appendChild(ptsEl);
+    listEl.appendChild(div);
+  });
   show('scores-screen');
 }
 
@@ -262,12 +311,25 @@ function handleGameOver(data) {
   document.getElementById('go-thumbs').textContent =
     cup ? `👍 Thumbs Cup: ${cup}` : '';
   const scores = data.final_scores || [];
-  document.getElementById('go-scores').innerHTML = scores.map((s, i) => `
-    <div class="score-row">
-      <span class="score-rank ${i === 0 ? 'top' : ''}">${i + 1}</span>
-      <span class="score-name">${s.name}${s.id === actualPid ? ' (you)' : ''}</span>
-      <span class="score-pts">${s.score.toLocaleString()}</span>
-    </div>`).join('');
+  const goScores = document.getElementById('go-scores');
+  goScores.innerHTML = '';
+  scores.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'score-row';
+    const rankEl = document.createElement('span');
+    rankEl.className = 'score-rank' + (i === 0 ? ' top' : '');
+    rankEl.textContent = String(i + 1);
+    const nameEl = document.createElement('span');
+    nameEl.className = 'score-name';
+    nameEl.textContent = s.name + (s.id === actualPid ? ' (you)' : '');
+    const ptsEl = document.createElement('span');
+    ptsEl.className = 'score-pts';
+    ptsEl.textContent = s.score.toLocaleString();
+    div.appendChild(rankEl);
+    div.appendChild(nameEl);
+    div.appendChild(ptsEl);
+    goScores.appendChild(div);
+  });
   show('gameover-screen');
 }
 
