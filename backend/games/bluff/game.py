@@ -375,13 +375,15 @@ class BluffGame(BaseGame):
                 return
             if len(raw) > 150:
                 raw = raw[:150]
-            # Check too similar to truth
+            # Check too similar to truth or an existing player's lie
             truth = self.current_question["truth"] if self.current_question else ""
-            if _is_too_similar(raw, truth):
+            if _is_too_similar(raw, truth) or any(
+                _is_too_similar(raw, existing) for existing in self.lies.values()
+            ):
                 await self.broadcast(
                     {
                         "type": "error",
-                        "data": {"message": "Too similar to the truth! Try a different answer."},
+                        "data": {"message": "That answer is already taken! Try a different one."},
                     },
                     player_id,
                 )
