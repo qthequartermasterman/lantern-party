@@ -7,7 +7,8 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-from hypothesis import given, settings, assume
+from httpx import ASGITransport, AsyncClient
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 from backend.games.bluff.game import (
@@ -18,8 +19,6 @@ from backend.games.bluff.game import (
 )
 from backend.main import app
 from backend.party_manager import PartyManager
-from httpx import ASGITransport, AsyncClient
-
 
 # ──────────────────────────────────────────────────────────────────────
 # Helpers
@@ -60,7 +59,7 @@ class TestIsTooSimilar:
 
 # ── Hypothesis: property-based tests for similarity check ──────────────
 
-@given(text=st.text(min_size=1, max_size=40, alphabet=st.characters(whitelist_categories=('Lu', 'Ll', 'Nd', 'Zs'))))
+@given(text=st.text(min_size=1, max_size=40, alphabet=st.characters(whitelist_categories=("Lu", "Ll", "Nd", "Zs"))))
 def test_truth_always_too_similar_to_itself(text: str) -> None:
     """Any non-empty string is too similar to itself."""
     assume(text.strip())
@@ -68,8 +67,8 @@ def test_truth_always_too_similar_to_itself(text: str) -> None:
 
 
 @given(
-    truth=st.text(min_size=3, max_size=20, alphabet=st.characters(whitelist_categories=('Lu', 'Ll'))),
-    lie=st.text(min_size=3, max_size=20, alphabet=st.characters(whitelist_categories=('Lu', 'Ll'))),
+    truth=st.text(min_size=3, max_size=20, alphabet=st.characters(whitelist_categories=("Lu", "Ll"))),
+    lie=st.text(min_size=3, max_size=20, alphabet=st.characters(whitelist_categories=("Lu", "Ll"))),
 )
 @settings(max_examples=200)
 def test_similarity_is_symmetric(truth: str, lie: str) -> None:
@@ -81,7 +80,7 @@ def test_similarity_is_symmetric(truth: str, lie: str) -> None:
 
 
 @given(
-    truth=st.text(min_size=5, max_size=30, alphabet=st.characters(whitelist_categories=('Lu', 'Ll', 'Zs'))),
+    truth=st.text(min_size=5, max_size=30, alphabet=st.characters(whitelist_categories=("Lu", "Ll", "Zs"))),
 )
 @settings(max_examples=100)
 def test_very_different_strings_not_too_similar(truth: str) -> None:
@@ -297,7 +296,7 @@ def test_scores_never_below_zero_property(starting_score: int) -> None:
 # Unit: BluffGame state
 # ──────────────────────────────────────────────────────────────────────
 
-@pytest.fixture()
+@pytest.fixture
 def anyio_backend():
     return "asyncio"
 
@@ -338,6 +337,7 @@ async def test_too_similar_rejected():
     players = make_players("Alice", "Bob")
     game = BluffGame("TST", players, capture)
     await game.start()
+    assert game.current_question is not None
     truth = game.current_question["truth"]
 
     await game.handle_action(
@@ -566,8 +566,8 @@ async def test_bluff_host_page():
         resp = await c.get(f"/host/{code}")
     assert resp.status_code == 200
     assert "bluff" in resp.text.lower() or "lantern" in resp.text.lower()
-    assert '/bluff/host.css' in resp.text
-    assert '/bluff/host.js' in resp.text
+    assert "/bluff/host.css" in resp.text
+    assert "/bluff/host.js" in resp.text
 
 
 @pytest.mark.anyio
@@ -577,8 +577,8 @@ async def test_bluff_player_page():
         code = create.json()["code"]
         resp = await c.get(f"/player/{code}")
     assert resp.status_code == 200
-    assert '/bluff/player.css' in resp.text
-    assert '/bluff/player.js' in resp.text
+    assert "/bluff/player.css" in resp.text
+    assert "/bluff/player.js" in resp.text
 
 
 @pytest.mark.anyio
@@ -608,6 +608,7 @@ async def test_host_page_unknown_party_returns_404():
 async def test_end_game_broadcasts_party_ended_and_deletes_party():
     """After game over, a party_ended message is sent and the party is removed."""
     from unittest.mock import patch
+
     from backend.party_manager import party_manager
 
     messages: list[dict] = []

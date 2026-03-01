@@ -1,5 +1,4 @@
-"""
-Loads prompts for Bluff and Baffle from the JSON data file.
+"""Loads prompts for Bluff and Baffle from the JSON data file.
 
 Each prompt entry has:
   prompt   – question text with "_____" as the blank
@@ -16,7 +15,7 @@ _DATA_FILE = Path(__file__).parent / "data" / "prompts.json"
 
 
 def _load() -> dict:
-    with open(_DATA_FILE, encoding="utf-8") as f:
+    with _DATA_FILE.open(encoding="utf-8") as f:
         return json.load(f)
 
 

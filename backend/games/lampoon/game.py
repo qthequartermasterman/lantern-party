@@ -1,5 +1,4 @@
-"""
-Lampoon game implementation.
+"""Lampoon game implementation.
 
 State machine:
   lobby → answering (R1) → revealing (R1) → answering (R2) → revealing (R2)
@@ -10,15 +9,13 @@ from __future__ import annotations
 import asyncio
 import math
 import random
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, Awaitable
+from typing import Any
 
 from backend.games.base import BaseGame
 from backend.games.lampoon.prompts import FINAL_PROMPTS, ROUND_PROMPTS
 from backend.party_manager import party_manager
-
-if TYPE_CHECKING:
-    pass
 
 # ──────────────────────────────────────────────
 # Data structures
@@ -26,6 +23,8 @@ if TYPE_CHECKING:
 
 @dataclass
 class Player:
+    """Player in a Lampoon game."""
+
     id: str
     name: str
     score: int = 0
@@ -35,6 +34,8 @@ class Player:
 
 @dataclass
 class Matchup:
+    """Head-to-head prompt matchup between two players."""
+
     prompt: str
     player_a_id: str
     player_b_id: str
@@ -52,14 +53,14 @@ class Matchup:
 _ROUND_MULTIPLIER = {1: 1, 2: 2}
 
 
-def _score_matchup(
+def _score_matchup(  # noqa: C901
     matchup: Matchup,
     round_num: int,
-    players: dict[str, Player],
+    _players: dict[str, Player],
 ) -> dict[str, Any]:
-    """
-    Compute score delta for a matchup.
-    Returns dict with keys: points_a, points_b, special
+    """Compute score delta for a matchup.
+
+    Returns dict with keys: points_a, points_b, special.
     """
     mult = _ROUND_MULTIPLIER[round_num]
     no_answer_bonus = 1000 * mult
@@ -151,8 +152,7 @@ Broadcaster = Callable[[dict[str, Any], str | None], Awaitable[None]]
 
 
 class LampoonGame(BaseGame):
-    """
-    Lampoon – the Lantern Party word-answer game.
+    """Lampoon – the Lantern Party word-answer game.
 
     The party passes a ``broadcast`` coroutine so the game can push
     messages to connected clients without importing WebSocket logic.
@@ -169,6 +169,7 @@ class LampoonGame(BaseGame):
         players: dict[str, Player],
         broadcast: Broadcaster,
     ) -> None:
+        """Initialise the game with a party code, player registry, and broadcast callable."""
         self.party_code = party_code
         self.players = players  # shared reference with Party
         self.broadcast = broadcast
@@ -216,6 +217,7 @@ class LampoonGame(BaseGame):
     async def handle_action(
         self, player_id: str, action_type: str, data: dict[str, Any]
     ) -> None:
+        """Dispatch an incoming player action to the appropriate handler."""
         handler = {
             "submit_answer": self._handle_submit_answer,
             "submit_vote": self._handle_submit_vote,
@@ -226,13 +228,14 @@ class LampoonGame(BaseGame):
             await handler(player_id, data)
 
     def get_host_state(self) -> dict[str, Any]:
+        """Return the full game state dict to send to the host WebSocket."""
         state: dict[str, Any] = {
             "phase": self.phase,
             "round_num": self.round_num,
             "scores": self._scores_list(),
             "timer": self._timer_seconds,
         }
-        if self.phase in ("answering",):
+        if self.phase == "answering":
             state["answers_received"] = self._answers_received
             state["answers_expected"] = self._answers_expected
         if self.phase == "revealing":
@@ -264,6 +267,7 @@ class LampoonGame(BaseGame):
         return state
 
     def get_player_state(self, player_id: str) -> dict[str, Any]:
+        """Return the personalised game state dict for a specific player."""
         state: dict[str, Any] = {
             "phase": self.phase,
             "round_num": self.round_num,
@@ -277,12 +281,10 @@ class LampoonGame(BaseGame):
             ]
             # Which prompt indices this player has already answered
             submitted = []
-            for p_text, p_idx in prompts:
+            for _p_text, p_idx in prompts:
                 if p_idx < len(self.matchups):
                     m = self.matchups[p_idx]
-                    if m.player_a_id == player_id and m.answer_a:
-                        submitted.append(p_idx)
-                    elif m.player_b_id == player_id and m.answer_b:
+                    if (m.player_a_id == player_id and m.answer_a) or (m.player_b_id == player_id and m.answer_b):
                         submitted.append(p_idx)
             state["submitted"] = submitted
 
@@ -777,7 +779,7 @@ class LampoonGame(BaseGame):
 
         await self._start_timer(60, self._on_final_voting_expire)
 
-    async def _handle_submit_final_votes(
+    async def _handle_submit_final_votes(  # noqa: PLR0911
         self, player_id: str, data: dict[str, Any]
     ) -> None:
         if self.phase != "final_revealing":
@@ -886,7 +888,7 @@ class LampoonGame(BaseGame):
 
     # ── Host 'next' handler ──────────────────────────────────────────────
 
-    async def _handle_next(self, player_id: str, data: dict[str, Any]) -> None:
+    async def _handle_next(self, player_id: str, data: dict[str, Any]) -> None:  # noqa: ARG002
         """Host can manually advance certain phases."""
         if player_id != "host":
             return

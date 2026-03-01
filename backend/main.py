@@ -1,6 +1,4 @@
-"""
-Lantern Party – FastAPI application entry point.
-"""
+"""Lantern Party – FastAPI application entry point."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -42,11 +40,13 @@ _KNOWN_GAMES = {"lampoon", "bluff"}
 
 @app.get("/", include_in_schema=False)
 async def index() -> FileResponse:
+    """Serve the lobby index page."""
     return FileResponse(FRONTEND_DIR / "index.html")
 
 
 @app.get("/host/{party_code}", include_in_schema=False)
 async def host_page(party_code: str) -> FileResponse:
+    """Serve the host HTML page for the given party code."""
     party = party_manager.get_party(party_code)
     if not party:
         raise HTTPException(status_code=404, detail="Party not found")
@@ -58,6 +58,7 @@ async def host_page(party_code: str) -> FileResponse:
 
 @app.get("/player/{party_code}", include_in_schema=False)
 async def player_page(party_code: str) -> FileResponse:
+    """Serve the player HTML page for the given party code."""
     party = party_manager.get_party(party_code)
     if not party:
         raise HTTPException(status_code=404, detail="Party not found")
@@ -72,11 +73,14 @@ async def player_page(party_code: str) -> FileResponse:
 # ──────────────────────────────────────────────
 
 class CreatePartyRequest(BaseModel):
+    """Request body for creating a new party."""
+
     game_name: str
 
 
 @app.post("/api/party")
 async def create_party(body: CreatePartyRequest) -> dict:
+    """Create a new party for the given game and return the party code."""
     if body.game_name not in _KNOWN_GAMES:
         raise HTTPException(status_code=400, detail="Unknown game")
     party = party_manager.create_party(game_name=body.game_name)
@@ -87,11 +91,14 @@ async def create_party(body: CreatePartyRequest) -> dict:
 
 
 class JoinPartyRequest(BaseModel):
-    pass  # code is in the URL; name is sent via WebSocket
+    """Request body for joining a party (code is in URL; name is sent via WebSocket)."""
+
+    # code is in the URL; name is sent via WebSocket
 
 
 @app.post("/api/party/{code}/join")
 async def join_party(code: str) -> dict:
+    """Return the player URL for the given party code."""
     party = party_manager.get_party(code)
     if not party:
         raise HTTPException(status_code=404, detail="Party not found")

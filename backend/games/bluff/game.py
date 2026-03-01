@@ -1,5 +1,4 @@
-"""
-Bluff and Baffle – Lantern Party bluffing trivia game.
+"""Bluff and Baffle – Lantern Party bluffing trivia game.
 
 State machine per game:
   lobby → collecting_lies → voting → revealing → [next question]
@@ -17,15 +16,13 @@ from __future__ import annotations
 import asyncio
 import difflib
 import random
-from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, TYPE_CHECKING
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from typing import Any
 
 from backend.games.base import BaseGame
 from backend.games.bluff.prompts import FINAL_PROMPTS, ROUND_PROMPTS
 from backend.party_manager import party_manager
-
-if TYPE_CHECKING:
-    pass
 
 # ─────────────────────────────────────────────────────────────
 # Shared data model (re-exported so ws.py can import from here)
@@ -33,6 +30,8 @@ if TYPE_CHECKING:
 
 @dataclass
 class Player:
+    """Player in a Bluff and Baffle game."""
+
     id: str
     name: str
     score: int = 0
@@ -70,7 +69,7 @@ def _is_too_similar(text: str, truth: str) -> bool:
 # Scoring
 # ─────────────────────────────────────────────────────────────
 
-def _score_question(
+def _score_question(  # noqa: C901, PLR0913
     choice_keys: list[str],
     votes: dict[str, int],
     game_provided: set[str],
@@ -78,8 +77,7 @@ def _score_question(
     round_mult: int,
     players: dict[str, Player],
 ) -> dict[str, int]:
-    """
-    Compute score deltas for one question.
+    """Compute score deltas for one question.
 
     choice_keys[i]  = "truth" | player_id  for the choice at index i.
     votes[voter_id] = choice_index the voter selected.
@@ -129,8 +127,7 @@ def _score_question(
 # ─────────────────────────────────────────────────────────────
 
 class BluffGame(BaseGame):
-    """
-    Bluff and Baffle – the Lantern Party bluffing trivia game.
+    """Bluff and Baffle – the Lantern Party bluffing trivia game.
 
     Three rounds (R1, R2, R3-final).  Each question the host displays a
     trivia fact with one word/phrase blanked out.  Players invent lies;
@@ -143,6 +140,7 @@ class BluffGame(BaseGame):
         players: dict[str, Player],
         broadcast: Broadcaster,
     ) -> None:
+        """Initialise the game with a party code, player registry, and broadcast callable."""
         self.party_code = party_code
         self.players = players
         self.broadcast = broadcast
@@ -187,6 +185,7 @@ class BluffGame(BaseGame):
     async def handle_action(
         self, player_id: str, action_type: str, data: dict[str, Any]
     ) -> None:
+        """Dispatch an incoming player action to the appropriate handler."""
         handler = {
             "submit_lie": self._handle_submit_lie,
             "submit_vote": self._handle_submit_vote,
@@ -197,6 +196,7 @@ class BluffGame(BaseGame):
             await handler(player_id, data)
 
     def get_host_state(self) -> dict[str, Any]:
+        """Return the full game state dict to send to the host WebSocket."""
         state: dict[str, Any] = {
             "game": "bluff",
             "phase": self.phase,
@@ -226,6 +226,7 @@ class BluffGame(BaseGame):
         return state
 
     def get_player_state(self, player_id: str) -> dict[str, Any]:
+        """Return the personalised game state dict for a specific player."""
         state: dict[str, Any] = {
             "game": "bluff",
             "phase": self.phase,
@@ -433,7 +434,7 @@ class BluffGame(BaseGame):
             "The colour mauve", "Sir Francis Drake",
         ]
         fb_candidates = [f for f in fallback if f.lower() != truth and f.lower() not in existing]
-        return random.choice(fb_candidates if fb_candidates else fallback)
+        return random.choice(fb_candidates or fallback)
 
     # ── Voting phase ─────────────────────────────────────────────────────
 
@@ -558,7 +559,7 @@ class BluffGame(BaseGame):
             (i for i, k in enumerate(self._choice_keys) if k == "truth"), None
         )
         choices_detail = []
-        for i, (key, text) in enumerate(zip(self._choice_keys, self._choice_texts)):
+        for i, (key, text) in enumerate(zip(self._choice_keys, self._choice_texts, strict=False)):
             is_truth = key == "truth"
             vote_count = sum(1 for v in self.votes.values() if v == i)
             entry: dict[str, Any] = {
@@ -598,7 +599,7 @@ class BluffGame(BaseGame):
 
         key = self._choice_keys[choice_index]
         # Can only like lies (not the truth, not your own lie)
-        if key == "truth" or key == player_id:
+        if key in ("truth", player_id):
             return
 
         likers = self.likes.setdefault(choice_index, [])
@@ -627,7 +628,7 @@ class BluffGame(BaseGame):
 
     # ── Host "next" ──────────────────────────────────────────────────────
 
-    async def _handle_next(self, player_id: str, data: dict[str, Any]) -> None:
+    async def _handle_next(self, player_id: str, data: dict[str, Any]) -> None:  # noqa: ARG002
         if player_id != "host":
             return
         if self.phase == "revealing":

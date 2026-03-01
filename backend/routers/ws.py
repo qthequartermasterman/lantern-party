@@ -1,26 +1,25 @@
-"""
-WebSocket router – handles real-time connections for host and players.
-"""
+"""WebSocket router – handles real-time connections for host and players."""
 from __future__ import annotations
 
+import contextlib
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from backend.games.base import BaseGame
 from backend.games.bluff.game import BluffGame
 from backend.games.lampoon.game import LampoonGame, Player
 from backend.party_manager import party_manager
+
+if TYPE_CHECKING:
+    from backend.games.base import BaseGame
 
 router = APIRouter()
 
 
 async def _send(ws: WebSocket, message: dict[str, Any]) -> None:
-    try:
+    with contextlib.suppress(Exception):
         await ws.send_text(json.dumps(message))
-    except Exception:
-        pass
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -29,6 +28,7 @@ async def _send(ws: WebSocket, message: dict[str, Any]) -> None:
 
 @router.websocket("/ws/{party_code}/host")
 async def host_ws(websocket: WebSocket, party_code: str) -> None:
+    """Accept and manage the host WebSocket connection for a party."""
     party = party_manager.get_party(party_code)
     if not party:
         await websocket.accept()
@@ -112,6 +112,7 @@ async def _handle_host_message(
 async def player_ws(
     websocket: WebSocket, party_code: str, player_id: str
 ) -> None:
+    """Accept and manage a player WebSocket connection for a party."""
     party = party_manager.get_party(party_code)
     if not party:
         await websocket.accept()

@@ -11,10 +11,15 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from backend.games.lampoon.game import LampoonGame, Player, _score_matchup, _score_final, Matchup
+from backend.games.lampoon.game import (
+    LampoonGame,
+    Matchup,
+    Player,
+    _score_final,
+    _score_matchup,
+)
 from backend.main import app
-from backend.party_manager import party_manager, PartyManager
-
+from backend.party_manager import PartyManager, party_manager
 
 # ──────────────────────────────────────────────────────────────────────
 # Helpers
@@ -206,7 +211,7 @@ class TestPromptAssignment:
 # Integration: HTTP API
 # ──────────────────────────────────────────────────────────────────────
 
-@pytest.fixture()
+@pytest.fixture
 def anyio_backend():
     return "asyncio"
 
@@ -327,7 +332,6 @@ async def test_submit_vote():
     # Submit all answers
     for pid, assignments in game.prompt_assignments.items():
         for _, idx in assignments:
-            m = game.matchups[idx]
             await game.handle_action(pid, "submit_answer", {"prompt_index": idx, "answer": "test"})
 
     assert game.phase == "revealing"
@@ -354,7 +358,7 @@ async def test_final_votes_must_sum_to_3():
     players = make_players("Alice", "Bob", "Charlie")
     game = LampoonGame("TFIN", players, capture)
     game.phase = "final_revealing"
-    game.final_answers = {pid: "answer" for pid in players}
+    game.final_answers = dict.fromkeys(players, "answer")
 
     # Try to submit only 2 votes
     await game.handle_action(
@@ -381,7 +385,7 @@ async def test_get_player_state_answering():
     game.round_num = 1
     game._assign_prompts_for_round()
 
-    pid = list(players.keys())[0]
+    pid = next(iter(players.keys()))
     state = game.get_player_state(pid)
     assert "prompts" in state
     assert isinstance(state["prompts"], list)
