@@ -25,6 +25,7 @@ dev = [
     "hypothesis>=6.0.0",
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
+    "python-semantic-release>=10.0.0",
 ]
 
 [tool.pytest.ini_options]
@@ -32,3 +33,12 @@ asyncio_mode = "strict"
 
 [tool.hatch.build.targets.wheel]
 packages = ["backend"]
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+branch = "main"
+upload_to_pypi = false
+build_command = "uv build"
+
+[tool.semantic_release.remote]
+token = { env = "GH_TOKEN" }
