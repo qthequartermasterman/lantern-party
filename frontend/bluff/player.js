@@ -170,6 +170,14 @@ function handleVoting(data) {
   document.getElementById('vote-submitted').style.display = 'none';
   document.getElementById('vote-list').style.display = 'block';
   show('voting-screen');
+  markOwnAnswer();
+}
+
+function markOwnAnswer() {
+  document.querySelectorAll('.vote-item').forEach(el => {
+    const isOwn = ownChoiceIndex !== null && parseInt(el.dataset.index, 10) === ownChoiceIndex;
+    el.classList.toggle('own-answer', isOwn);
+  });
 }
 
 document.getElementById('vote-list').addEventListener('click', e => {
@@ -355,6 +363,7 @@ function handleGameState(data) {
       choices: data.choices,
     });
     ownChoiceIndex = data.own_choice_index ?? null;
+    markOwnAnswer();
     if (data.already_voted) {
       document.getElementById('vote-submitted').style.display = 'block';
       document.getElementById('vote-list').style.display = 'none';
