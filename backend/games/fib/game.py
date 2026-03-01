@@ -297,7 +297,6 @@ class FibGame(BaseGame):
             n = QUESTIONS_PER_ROUND
 
         # Shuffle and pick without repeating already-used prompts in this game
-        used = self._round_question_pool  # track via side-effect below
         available = [q for q in pool if q not in self._round_question_pool]
         if len(available) < n:
             available = list(pool)
