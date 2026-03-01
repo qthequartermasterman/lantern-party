@@ -516,7 +516,13 @@
   // ── WebSocket ─────────────────────────────────────────────────────────
   function connect() {
     ws = new WebSocket(wsUrl);
-    ws.onopen = () => {};
+    ws.onopen = () => {
+      // If the player already provided their name (e.g. via the index page),
+      // auto-submit the join so they don't have to enter it a second time.
+      if (myName && !hasJoined && nameSubmitBtn) {
+        nameSubmitBtn.click();
+      }
+    };
     ws.onclose = () => { setTimeout(connect, 2000); };
     ws.onmessage = (e) => {
       try { handleMsg(JSON.parse(e.data)); } catch(_) {}
