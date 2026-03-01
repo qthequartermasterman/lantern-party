@@ -31,7 +31,7 @@ ROUND_PROMPTS: list[str] = [
     "The least motivating motivational poster",
     "A terrible name for a cooking show",
     "What your houseplants would say if they could talk",
-    "The worst flavour of ice cream that someone would still sell",
+    "The worst flavor of ice cream that someone would still sell",
     "An unlikely ingredient for a love potion",
     "The worst thing to say when someone shows you their new baby",
     "A rejected Hallmark movie title",
