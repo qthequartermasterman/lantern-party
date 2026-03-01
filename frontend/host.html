@@ -330,6 +330,19 @@
       margin-right: 6px;
     }
     .conn-dot.ok { background: var(--green); }
+
+    #tts-btn {
+      background: none;
+      border: 1.5px solid rgba(245,166,35,0.3);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      padding: 0.3rem 0.6rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    #tts-btn:hover { border-color: var(--primary); color: var(--primary); }
+    #tts-btn.muted { color: var(--accent); border-color: var(--accent); }
   </style>
 </head>
 <body>
@@ -337,7 +350,10 @@
 <div id="top-bar">
   <div class="brand">🏮 Lantern Party</div>
   <div id="party-code-display">----</div>
-  <div id="timer-bar"></div>
+  <div style="display:flex;align-items:center;gap:0.8rem;">
+    <button id="tts-btn" title="Toggle narration">🔊</button>
+    <div id="timer-bar"></div>
+  </div>
 </div>
 
 <div id="main">
@@ -571,7 +587,8 @@
   // ── Matchup start ─────────────────────────────────────────────────────
   function renderMatchupStart(data) {
     showScreen('revealing');
-    document.getElementById('matchup-prompt').textContent = data.prompt || '';
+    const promptText = data.prompt || '';
+    document.getElementById('matchup-prompt').textContent = promptText;
     document.getElementById('author-a').textContent = data.player_a_name || 'A';
     document.getElementById('author-b').textContent = data.player_b_name || 'B';
     document.getElementById('answer-a').textContent = data.answer_a || '(no answer)';
@@ -587,6 +604,7 @@
     banner.className = 'special-banner';
     banner.textContent = '';
     nextBtn.classList.remove('show');
+    speak(promptText);
   }
 
   // ── Vote result ───────────────────────────────────────────────────────
@@ -690,6 +708,25 @@
     if (sec === 0) { timerEl.textContent = ''; return; }
     timerEl.textContent = `⏱ ${sec}s`;
     timerEl.className = sec <= 10 ? 'urgent' : '';
+  }
+
+  // ── Text-to-Speech ────────────────────────────────────────────────────
+  let ttsEnabled = true;
+  const ttsBtn = document.getElementById('tts-btn');
+  ttsBtn.addEventListener('click', () => {
+    ttsEnabled = !ttsEnabled;
+    ttsBtn.textContent = ttsEnabled ? '🔊' : '🔇';
+    ttsBtn.classList.toggle('muted', !ttsEnabled);
+    if (!ttsEnabled) window.speechSynthesis && window.speechSynthesis.cancel();
+  });
+
+  function speak(text) {
+    if (!ttsEnabled || !window.speechSynthesis || !text) return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.rate = 0.95;
+    utt.pitch = 1;
+    window.speechSynthesis.speak(utt);
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────
