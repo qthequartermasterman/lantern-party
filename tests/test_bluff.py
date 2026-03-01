@@ -343,7 +343,31 @@ async def test_too_similar_rejected():
     await game.handle_action(
         "pid0", "submit_lie", {"text": truth, "lie_for_me": False}
     )
-    assert any("similar" in e["data"]["message"].lower() for e in errors)
+    assert "pid0" not in game.lies
+    assert any("already taken" in e["data"]["message"].lower() for e in errors)
+
+
+@pytest.mark.anyio
+async def test_too_similar_to_other_lie_rejected():
+    """A lie too similar to an existing player lie is rejected as 'already taken'."""
+    errors: list[dict] = []
+
+    async def capture(msg, target=None):
+        if msg.get("type") == "error":
+            errors.append(msg)
+
+    players = make_players("Alice", "Bob", "Charlie")
+    game = BluffGame("TST", players, capture)
+    await game.start()
+
+    # pid0 submits a lie
+    await game.handle_action("pid0", "submit_lie", {"text": "some unique lie", "lie_for_me": False})
+    assert "pid0" in game.lies
+
+    # pid1 submits the same lie text → should be rejected as "already taken"
+    await game.handle_action("pid1", "submit_lie", {"text": "some unique lie", "lie_for_me": False})
+    assert "pid1" not in game.lies
+    assert any("already taken" in e["data"]["message"].lower() for e in errors)
 
 
 @pytest.mark.anyio
@@ -353,8 +377,8 @@ async def test_submit_lie_transitions_to_voting():
     await game.start()
     assert game.phase == "collecting_lies"
 
-    await game.handle_action("pid0", "submit_lie", {"text": "fake answer A"})
-    await game.handle_action("pid1", "submit_lie", {"text": "fake answer B"})
+    await game.handle_action("pid0", "submit_lie", {"text": "a flying elephant"})
+    await game.handle_action("pid1", "submit_lie", {"text": "seventeen dancing hamsters"})
 
     assert game.phase == "voting"
 
@@ -365,8 +389,8 @@ async def test_voting_choices_include_truth_and_lies():
     game = make_game(players)
     await game.start()
 
-    await game.handle_action("pid0", "submit_lie", {"text": "fake A"})
-    await game.handle_action("pid1", "submit_lie", {"text": "fake B"})
+    await game.handle_action("pid0", "submit_lie", {"text": "a flying elephant"})
+    await game.handle_action("pid1", "submit_lie", {"text": "seventeen dancing hamsters"})
 
     assert game.phase == "voting"
     assert "truth" in game._choice_keys
@@ -381,9 +405,9 @@ async def test_submit_vote_advances_when_all_in():
     game = make_game(players)
     await game.start()
 
-    await game.handle_action("pid0", "submit_lie", {"text": "fake A"})
-    await game.handle_action("pid1", "submit_lie", {"text": "fake B"})
-    await game.handle_action("pid2", "submit_lie", {"text": "fake C"})
+    await game.handle_action("pid0", "submit_lie", {"text": "a flying elephant"})
+    await game.handle_action("pid1", "submit_lie", {"text": "seventeen dancing hamsters"})
+    await game.handle_action("pid2", "submit_lie", {"text": "the lost city of atlantis"})
     assert game.phase == "voting"
 
     truth_idx = game._choice_keys.index("truth")
@@ -406,9 +430,9 @@ async def test_cannot_vote_for_own_lie():
     game = BluffGame("TST", players, capture)
     await game.start()
 
-    await game.handle_action("pid0", "submit_lie", {"text": "fake A"})
-    await game.handle_action("pid1", "submit_lie", {"text": "fake B"})
-    await game.handle_action("pid2", "submit_lie", {"text": "fake C"})
+    await game.handle_action("pid0", "submit_lie", {"text": "a flying elephant"})
+    await game.handle_action("pid1", "submit_lie", {"text": "seventeen dancing hamsters"})
+    await game.handle_action("pid2", "submit_lie", {"text": "the lost city of atlantis"})
 
     own_idx = game._choice_keys.index("pid0")
     await game.handle_action("pid0", "submit_vote", {"choice_index": own_idx})
@@ -467,9 +491,9 @@ async def test_like_during_revealing():
     game = make_game(players)
     await game.start()
 
-    await game.handle_action("pid0", "submit_lie", {"text": "fake A"})
-    await game.handle_action("pid1", "submit_lie", {"text": "fake B"})
-    await game.handle_action("pid2", "submit_lie", {"text": "fake C"})
+    await game.handle_action("pid0", "submit_lie", {"text": "a flying elephant"})
+    await game.handle_action("pid1", "submit_lie", {"text": "seventeen dancing hamsters"})
+    await game.handle_action("pid2", "submit_lie", {"text": "the lost city of atlantis"})
 
     truth_idx = game._choice_keys.index("truth")
     for pid in ["pid0", "pid1", "pid2"]:
