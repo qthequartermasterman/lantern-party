@@ -63,7 +63,7 @@ ws.addEventListener('message', e => {
   if (type === 'bluff_reveal')   { handleReveal(data); return; }
   if (type === 'bluff_scores')   { handleScores(data); return; }
   if (type === 'game_over')      { handleGameOver(data); return; }
-  if (type === 'party_ended')    { window.location.href = '/'; return; }
+  if (type === 'party_ended')    { startRedirectCountdown(5); return; }
   if (type === 'game_state')     { handleGameState(data); return; }
   if (type === 'like_update')    { handleLikeUpdate(data); return; }
 });
@@ -382,4 +382,23 @@ function handleError(data) {
   } else {
     alert(msg);
   }
+}
+
+// ── Party-ending redirect countdown ──────────────────────────────────
+let _redirectInterval = null;
+function startRedirectCountdown(seconds) {
+  if (_redirectInterval) return;  // already counting down
+  const banner = document.getElementById('party-ending-banner');
+  const countEl = document.getElementById('redirect-countdown');
+  let remaining = seconds;
+  countEl.textContent = remaining;
+  banner.style.display = 'block';
+  _redirectInterval = setInterval(() => {
+    remaining -= 1;
+    countEl.textContent = remaining;
+    if (remaining <= 0) {
+      clearInterval(_redirectInterval);
+      window.location.href = '/';
+    }
+  }, 1000);
 }
