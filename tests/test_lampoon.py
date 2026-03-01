@@ -225,7 +225,7 @@ async def test_create_party():
 @pytest.mark.anyio
 async def test_join_party():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        create_resp = await client.post("/api/party", json={})
+        create_resp = await client.post("/api/party", json={"game_name": "lampoon"})
         code = create_resp.json()["code"]
         join_resp = await client.post(f"/api/party/{code}/join")
     assert join_resp.status_code == 200
@@ -250,15 +250,17 @@ async def test_index_page():
 @pytest.mark.anyio
 async def test_host_page():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.get("/host/ABCD")
-    assert resp.status_code == 200
-    assert "host" in resp.text.lower()
+        resp = await client.post("/api/party", json={"game_name": "lampoon"})
+        code = resp.json()["code"]
+        page = await client.get(f"/host/{code}")
+    assert page.status_code == 200
+    assert "host" in page.text.lower()
 
 
 @pytest.mark.anyio
 async def test_player_page():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.post("/api/party", json={})
+        resp = await client.post("/api/party", json={"game_name": "lampoon"})
         code = resp.json()["code"]
         page = await client.get(f"/player/{code}")
     assert page.status_code == 200

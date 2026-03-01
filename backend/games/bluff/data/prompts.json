@@ -1,0 +1,246 @@
+{
+  "round_prompts": [
+    {
+      "prompt": "The national animal of Scotland is the _____.",
+      "truth": "unicorn",
+      "category": "World Trivia",
+      "lies": ["dragon", "stag", "gryphon", "kelpie", "thistle"]
+    },
+    {
+      "prompt": "A day on _____ is longer than its year.",
+      "truth": "Venus",
+      "category": "Space",
+      "lies": ["Mercury", "Pluto", "Jupiter", "Mars", "Neptune"]
+    },
+    {
+      "prompt": "Oxford University started teaching before the _____ Empire was founded.",
+      "truth": "Aztec",
+      "category": "History",
+      "lies": ["Ottoman", "Roman", "British", "Mongol", "Ming"]
+    },
+    {
+      "prompt": "The dot above a lowercase 'i' or 'j' is called a _____.",
+      "truth": "tittle",
+      "category": "Language",
+      "lies": ["serif", "glyph", "diacritic", "ascender", "finial"]
+    },
+    {
+      "prompt": "Botanically speaking, bananas are classified as _____.",
+      "truth": "berries",
+      "category": "Science",
+      "lies": ["drupes", "legumes", "tubers", "cucurbits", "pomes"]
+    },
+    {
+      "prompt": "Sharks are older than _____ – they appeared millions of years earlier.",
+      "truth": "trees",
+      "category": "Nature",
+      "lies": ["dinosaurs", "mountains", "birds", "flowers", "mammals"]
+    },
+    {
+      "prompt": "A group of flamingos is called a _____.",
+      "truth": "flamboyance",
+      "category": "Nature",
+      "lies": ["flutter", "blush", "carnival", "parade", "regiment"]
+    },
+    {
+      "prompt": "Honey found in ancient Egyptian _____ was still perfectly edible after 3,000 years.",
+      "truth": "tombs",
+      "category": "History",
+      "lies": ["granaries", "temples", "amphoras", "urns", "cellars"]
+    },
+    {
+      "prompt": "The word 'salary' comes from the Latin word for _____.",
+      "truth": "salt",
+      "category": "Language",
+      "lies": ["silver", "service", "sustenance", "silk", "sandals"]
+    },
+    {
+      "prompt": "An ostrich's eye is bigger than its _____.",
+      "truth": "brain",
+      "category": "Nature",
+      "lies": ["egg", "heart", "stomach", "foot", "knee"]
+    },
+    {
+      "prompt": "Butterflies taste things with their _____.",
+      "truth": "feet",
+      "category": "Nature",
+      "lies": ["antennae", "tongues", "wings", "proboscis", "eyes"]
+    },
+    {
+      "prompt": "A flock of crows is called a _____.",
+      "truth": "murder",
+      "category": "Nature",
+      "lies": ["conspiracy", "mob", "cackle", "gang", "skulk"]
+    },
+    {
+      "prompt": "Nintendo was originally founded in 1889 as a _____ company.",
+      "truth": "playing card",
+      "category": "Pop Culture",
+      "lies": ["textile", "ceramic", "toy", "printing", "food"]
+    },
+    {
+      "prompt": "Cleopatra lived closer in time to the _____ than to the construction of the Great Pyramid.",
+      "truth": "Moon landing",
+      "category": "History",
+      "lies": ["birth of Jesus", "fall of Rome", "Black Death", "Viking Age", "printing press"]
+    },
+    {
+      "prompt": "The Anglo-Zanzibar War of 1896 is the shortest war in history, lasting only _____ minutes.",
+      "truth": "38",
+      "category": "History",
+      "lies": ["12", "6", "90", "45", "3"]
+    },
+    {
+      "prompt": "The average person produces enough saliva in their lifetime to fill _____ swimming pools.",
+      "truth": "two",
+      "category": "Human Body",
+      "lies": ["fifty", "one hundred", "five", "ten", "a thousand"]
+    },
+    {
+      "prompt": "Wombat droppings are uniquely cube-shaped to prevent them rolling off _____.",
+      "truth": "rocks",
+      "category": "Nature",
+      "lies": ["logs", "hills", "each other", "tree roots", "their burrows"]
+    },
+    {
+      "prompt": "A group of owls is called a _____.",
+      "truth": "parliament",
+      "category": "Nature",
+      "lies": ["congress", "judiciary", "coven", "hoot", "cabinet"]
+    },
+    {
+      "prompt": "The word 'robot' was first used in a 1920 play by Czech author Karel Čapek. The word comes from the Czech word for _____.",
+      "truth": "forced labour",
+      "category": "Language",
+      "lies": ["machine", "servant", "iron man", "worker drone", "mechanical slave"]
+    },
+    {
+      "prompt": "Technically, the Great Wall of China is _____ from space with the naked eye.",
+      "truth": "not visible",
+      "category": "World Trivia",
+      "lies": ["easily seen", "visible on clear days", "photographable", "a bright stripe", "a dark line"]
+    },
+    {
+      "prompt": "A group of cats is called a _____.",
+      "truth": "clowder",
+      "category": "Nature",
+      "lies": ["pounce", "glaring", "cluster", "pride", "kindle"]
+    },
+    {
+      "prompt": "It is physically impossible to hum while holding your _____.",
+      "truth": "nose",
+      "category": "Human Body",
+      "lies": ["breath", "ears", "tongue", "jaw", "chin"]
+    },
+    {
+      "prompt": "Polar bear fur is actually _____, not white.",
+      "truth": "transparent",
+      "category": "Nature",
+      "lies": ["hollow", "yellow", "grey", "blue-tinted", "colourless when wet"]
+    },
+    {
+      "prompt": "A shrimp's heart is located in its _____.",
+      "truth": "head",
+      "category": "Nature",
+      "lies": ["tail", "thorax", "carapace", "abdomen", "gills"]
+    },
+    {
+      "prompt": "The king of hearts is the only king in a standard deck of cards with no _____.",
+      "truth": "mustache",
+      "category": "Pop Culture",
+      "lies": ["sword", "crown", "beard", "collar", "sceptre"]
+    },
+    {
+      "prompt": "Cows produce more milk when listening to _____.",
+      "truth": "slow music",
+      "category": "Science",
+      "lies": ["classical music", "jazz", "country music", "silence", "nature sounds"]
+    },
+    {
+      "prompt": "The longest hiccupping episode on record lasted _____ years.",
+      "truth": "68",
+      "category": "Human Body",
+      "lies": ["12", "27", "41", "5", "99"]
+    },
+    {
+      "prompt": "There are more possible iterations of a game of chess than there are _____ in the observable universe.",
+      "truth": "atoms",
+      "category": "Science",
+      "lies": ["stars", "galaxies", "grains of sand", "water molecules", "seconds since the Big Bang"]
+    },
+    {
+      "prompt": "Sea otters hold hands while sleeping so they don't _____.",
+      "truth": "drift apart",
+      "category": "Nature",
+      "lies": ["sink", "roll over", "get cold", "lose each other", "float away alone"]
+    },
+    {
+      "prompt": "The first alarm clock could only ring at _____.",
+      "truth": "4 a.m.",
+      "category": "History",
+      "lies": ["6 a.m.", "sunrise", "a fixed interval", "noon", "midnight"]
+    },
+    {
+      "prompt": "A group of pugs is called a _____.",
+      "truth": "grumble",
+      "category": "Nature",
+      "lies": ["waddle", "snuffle", "frown", "crinkle", "wrinkle"]
+    },
+    {
+      "prompt": "The average cloud weighs about _____ pounds.",
+      "truth": "1.1 million",
+      "category": "Science",
+      "lies": ["500", "10,000", "1 billion", "zero", "50,000"]
+    },
+    {
+      "prompt": "Octopuses have _____ hearts.",
+      "truth": "three",
+      "category": "Nature",
+      "lies": ["one", "two", "five", "four", "eight"]
+    },
+    {
+      "prompt": "The ancient Romans used _____ as a mouthwash.",
+      "truth": "urine",
+      "category": "History",
+      "lies": ["wine vinegar", "salt water", "chalk paste", "olive oil", "mint extract"]
+    },
+    {
+      "prompt": "The first webcam was invented to monitor a _____ pot at Cambridge University.",
+      "truth": "coffee",
+      "category": "Tech",
+      "lies": ["kettle", "soup", "plant", "fish tank", "printer"]
+    }
+  ],
+  "final_prompts": [
+    {
+      "prompt": "The shortest complete sentence in the English language is '_____.'",
+      "truth": "I am",
+      "category": "Language",
+      "lies": ["Go.", "Be.", "It is.", "Do.", "Act."]
+    },
+    {
+      "prompt": "It takes a photon about _____ years to travel from the core of the Sun to its surface.",
+      "truth": "100,000",
+      "category": "Space",
+      "lies": ["8 minutes", "1,000", "one million", "ten", "one billion"]
+    },
+    {
+      "prompt": "The inventor of the Pringles can was buried in one after he died – his family fulfilled his wish that his ashes be placed inside _____.",
+      "truth": "a Pringles can",
+      "category": "Pop Culture",
+      "lies": ["a tennis ball tube", "a beer keg", "a shoebox", "a cookie tin", "an urn shaped like his invention"]
+    },
+    {
+      "prompt": "Male platypuses have venomous spurs on their _____ that can cause excruciating pain in humans.",
+      "truth": "hind legs",
+      "category": "Nature",
+      "lies": ["tail", "beak", "front claws", "spines", "webbed feet"]
+    },
+    {
+      "prompt": "Humans share about 50% of their DNA with _____.",
+      "truth": "bananas",
+      "category": "Science",
+      "lies": ["mushrooms", "dogs", "roses", "goldfish", "corn"]
+    }
+  ]
+}

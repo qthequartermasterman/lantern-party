@@ -1,0 +1,282 @@
+/* Bluff & Baffle – Host styles */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #120d1a;
+  --surface: #1f1630;
+  --surface2: #2e2244;
+  --primary: #f5a623;
+  --primary-dark: #d4891a;
+  --accent: #e8645a;
+  --green: #52c97a;
+  --purple: #a06be0;
+  --text: #f0e8ff;
+  --text-muted: #9080b0;
+  --radius: 14px;
+  --glow-gold: 0 0 24px rgba(245,166,35,0.4);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Top bar ── */
+#top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background: var(--surface);
+  border-bottom: 1px solid rgba(245,166,35,0.15);
+}
+#top-bar .brand { font-size: 1.4rem; font-weight: 900; color: var(--primary); }
+#party-code-display {
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  color: var(--primary);
+  text-shadow: var(--glow-gold);
+}
+#timer-bar {
+  font-size: 1.6rem;
+  font-weight: 700;
+  min-width: 70px;
+  text-align: right;
+}
+#timer-bar.urgent { color: var(--accent); }
+
+/* ── Main ── */
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+}
+
+/* ── Screens ── */
+.screen { width: 100%; max-width: 960px; display: none; }
+.screen.active { display: block; }
+
+/* ── Lobby ── */
+#lobby-screen h2 { text-align: center; font-size: 1.6rem; color: var(--text-muted); margin-bottom: 0.3rem; }
+.lobby-code {
+  text-align: center;
+  font-size: 4rem;
+  font-weight: 900;
+  letter-spacing: 0.25em;
+  color: var(--primary);
+  text-shadow: var(--glow-gold);
+  margin-bottom: 0.5rem;
+}
+.lobby-hint { text-align: center; color: var(--text-muted); margin-bottom: 2rem; }
+#player-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.player-tile {
+  background: var(--surface2);
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-align: center;
+  border: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+.player-tile.ready { border-color: var(--green); }
+.player-tile .pname { font-weight: 700; font-size: 1rem; margin-bottom: 0.3rem; }
+.player-tile .pstatus { font-size: 0.75rem; color: var(--text-muted); }
+.player-tile.ready .pstatus { color: var(--green); }
+
+#start-btn {
+  display: block;
+  margin: 0 auto;
+  padding: 1rem 3rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #1a1020;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--glow-gold);
+  transition: opacity 0.2s;
+}
+#start-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Question card ── */
+.question-card {
+  background: var(--surface);
+  border: 1px solid rgba(245,166,35,0.2);
+  border-radius: var(--radius);
+  padding: 2rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+.q-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.8rem;
+}
+.q-prompt {
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  font-weight: 700;
+  line-height: 1.4;
+}
+.q-blank { color: var(--primary); font-style: italic; }
+
+/* ── Progress bar ── */
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.progress-label { color: var(--text-muted); font-size: 0.9rem; min-width: 140px; }
+.progress-bar-wrap {
+  flex: 1;
+  background: var(--surface2);
+  border-radius: 99px;
+  height: 10px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+.progress-count { font-size: 0.9rem; color: var(--text-muted); min-width: 50px; text-align: right; }
+
+/* ── Choice grid (voting / revealing) ── */
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.choice-card {
+  background: var(--surface);
+  border: 2px solid rgba(245,166,35,0.15);
+  border-radius: var(--radius);
+  padding: 1.2rem 1.4rem;
+  position: relative;
+}
+.choice-card.is-truth { border-color: var(--green); }
+.choice-idx {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.4rem;
+}
+.choice-text { font-size: 1.15rem; font-weight: 600; margin-bottom: 0.5rem; }
+.choice-footer { font-size: 0.8rem; color: var(--text-muted); }
+.choice-card.is-truth .choice-text { color: var(--green); }
+.choice-votes { font-weight: 700; color: var(--primary); }
+.choice-submitter { color: var(--accent); }
+.truth-badge {
+  display: inline-block;
+  background: var(--green);
+  color: #0e1f14;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-radius: 4px;
+  padding: 0.15rem 0.5rem;
+  margin-bottom: 0.3rem;
+}
+.game-provided-badge {
+  display: inline-block;
+  background: rgba(255,255,255,0.1);
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  margin-left: 0.4rem;
+}
+
+/* ── Scores ── */
+.scores-header {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 1.5rem;
+}
+.scores-list { list-style: none; }
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 0.9rem 1.2rem;
+  margin-bottom: 0.7rem;
+  border: 1px solid rgba(245,166,35,0.12);
+}
+.score-rank { font-size: 1.5rem; font-weight: 900; color: var(--text-muted); min-width: 2rem; text-align: center; }
+.score-rank.top { color: var(--primary); }
+.score-name { flex: 1; font-weight: 700; }
+.score-pts { font-size: 1.4rem; font-weight: 900; color: var(--primary); }
+
+/* ── Game over ── */
+.winners-banner {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 900;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.thumbs-cup {
+  text-align: center;
+  font-size: 1rem;
+  color: var(--purple);
+  margin-bottom: 2rem;
+}
+
+/* ── Round badge ── */
+.round-badge {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.2rem;
+}
+.rbadge {
+  background: var(--surface2);
+  border-radius: 20px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.rbadge.active { background: rgba(245,166,35,0.15); color: var(--primary); }
+
+#next-btn {
+  display: none;
+  margin: 1rem auto 0;
+  padding: 0.7rem 2rem;
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+#next-btn.visible { display: block; }

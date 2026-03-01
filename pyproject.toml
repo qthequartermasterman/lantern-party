@@ -22,6 +22,7 @@ lantern-party = "backend.main:app"
 dev = [
     "anyio>=4.12.1",
     "httpx>=0.28.1",
+    "hypothesis>=6.0.0",
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
 ]

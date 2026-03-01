@@ -11,6 +11,8 @@ uvicorn backend.main:app --reload --port 8000
 
 Then visit [http://localhost:8000](http://localhost:8000).
 
+Note: game-specific static assets should be referenced with absolute paths like `/bluff/host.css` (not relative `host.css`) because host/player pages are served from dynamic routes such as `/host/{code}` and `/player/{code}`.
+
 ## How to Play
 
 1. **Host** clicks **Create a Party** on the landing page → a big-screen host view opens showing a 4-letter party code.

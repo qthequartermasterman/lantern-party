@@ -32,6 +32,9 @@ app.include_router(ws_router)
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
+# Games whose static files live under frontend/<game_slug>/
+_KNOWN_GAMES = {"lampoon", "bluff"}
+
 
 # ──────────────────────────────────────────────
 # HTML page routes
@@ -44,12 +47,24 @@ async def index() -> FileResponse:
 
 @app.get("/host/{party_code}", include_in_schema=False)
 async def host_page(party_code: str) -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "host.html")
+    party = party_manager.get_party(party_code)
+    if not party:
+        raise HTTPException(status_code=404, detail="Party not found")
+    path = FRONTEND_DIR / party.game_name / "host.html"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Game page not found")
+    return FileResponse(path)
 
 
 @app.get("/player/{party_code}", include_in_schema=False)
 async def player_page(party_code: str) -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "player.html")
+    party = party_manager.get_party(party_code)
+    if not party:
+        raise HTTPException(status_code=404, detail="Party not found")
+    path = FRONTEND_DIR / party.game_name / "player.html"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Game page not found")
+    return FileResponse(path)
 
 
 # ──────────────────────────────────────────────
@@ -57,13 +72,18 @@ async def player_page(party_code: str) -> FileResponse:
 # ──────────────────────────────────────────────
 
 class CreatePartyRequest(BaseModel):
-    game_name: str = "lampoon"
+    game_name: str
 
 
 @app.post("/api/party")
-async def create_party(body: CreatePartyRequest = CreatePartyRequest()) -> dict:
+async def create_party(body: CreatePartyRequest) -> dict:
+    if body.game_name not in _KNOWN_GAMES:
+        raise HTTPException(status_code=400, detail="Unknown game")
     party = party_manager.create_party(game_name=body.game_name)
-    return {"code": party.code, "host_url": f"/host/{party.code}"}
+    return {
+        "code": party.code,
+        "host_url": f"/host/{party.code}",
+    }
 
 
 class JoinPartyRequest(BaseModel):
@@ -77,7 +97,8 @@ async def join_party(code: str) -> dict:
         raise HTTPException(status_code=404, detail="Party not found")
     if party.state != "lobby":
         raise HTTPException(status_code=400, detail="Game already in progress")
-    return {"player_url": f"/player/{code.upper()}"}
+    upper = code.upper()
+    return {"player_url": f"/player/{upper}"}
 
 
 # ──────────────────────────────────────────────

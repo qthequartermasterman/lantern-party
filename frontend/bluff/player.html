@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Lantern Party – Bluff &amp; Baffle 🏮</title>
+  <link rel="stylesheet" href="/bluff/player.css" />
+</head>
+<body>
+
+<div id="top-bar">
+  <span class="brand">🏮 Bluff &amp; Baffle</span>
+  <span id="top-timer"></span>
+</div>
+
+<div id="main">
+
+  <!-- ── Join ── -->
+  <div class="screen active" id="join-screen">
+    <div class="logo">🏮</div>
+    <h1>Bluff &amp; Baffle</h1>
+    <p class="code-hint" id="join-code-hint">Enter your name to join</p>
+    <label for="nameInput">Your Name</label>
+    <input type="text" id="nameInput" placeholder="e.g. MysticLiar" maxlength="20" autocomplete="off" />
+    <div class="error-msg" id="joinError"></div>
+    <button class="btn btn-primary" id="joinBtn">Join Game</button>
+  </div>
+
+  <!-- ── Lobby ── -->
+  <div class="screen" id="lobby-screen">
+    <div class="lobby-title" id="lobby-name"></div>
+    <p class="lobby-sub">Waiting for the host to start…</p>
+    <div class="ready-toggle">
+      <button class="btn btn-primary" id="readyBtn">I'm Ready!</button>
+      <button class="btn btn-secondary" id="unreadyBtn" style="display:none;">Not Ready</button>
+    </div>
+  </div>
+
+  <!-- ── Collecting lies ── -->
+  <div class="screen" id="collecting-screen">
+    <div class="prompt-card">
+      <div class="prompt-meta" id="collect-meta"></div>
+      <div class="prompt-text" id="collect-prompt"></div>
+    </div>
+    <div id="collect-submitted" style="display:none">
+      <div class="waiting-pill">✓ Lie submitted – waiting for others…</div>
+    </div>
+    <div id="collect-form">
+      <label for="lieInput">Your lie</label>
+      <textarea id="lieInput" placeholder="Type a convincing fake answer…" maxlength="150" rows="3"></textarea>
+      <div class="error-msg" id="lieError"></div>
+      <button class="btn btn-primary" id="submitLieBtn">Submit Lie</button>
+      <button class="btn btn-ghost" id="lieForMeBtn" style="margin-top:0.5rem;">🎲 Lie for me!</button>
+    </div>
+  </div>
+
+  <!-- ── Voting ── -->
+  <div class="screen" id="voting-screen">
+    <div class="prompt-card">
+      <div class="prompt-meta" id="vote-meta"></div>
+      <div class="prompt-text" id="vote-prompt"></div>
+    </div>
+    <p class="vote-hint">Which one is the <strong>truth</strong>?</p>
+    <ul class="vote-list" id="vote-list"></ul>
+    <div id="vote-submitted" style="display:none" class="waiting-pill">✓ Vote cast – waiting for others…</div>
+  </div>
+
+  <!-- ── Revealing ── -->
+  <div class="screen" id="revealing-screen">
+    <div class="prompt-card">
+      <div class="prompt-meta" id="reveal-meta"></div>
+      <div class="prompt-text" id="reveal-prompt"></div>
+    </div>
+    <ul class="reveal-list" id="reveal-list"></ul>
+    <p class="like-hint">Like the lies you enjoyed! 👍</p>
+  </div>
+
+  <!-- ── Scores ── -->
+  <div class="screen" id="scores-screen">
+    <div class="scores-title" id="scores-title"></div>
+    <div id="scores-list-p"></div>
+  </div>
+
+  <!-- ── Game Over ── -->
+  <div class="screen" id="gameover-screen">
+    <div class="go-trophy">🏆</div>
+    <div class="go-title" id="go-title"></div>
+    <div class="go-sub" id="go-sub"></div>
+    <div class="thumbs-cup" id="go-thumbs"></div>
+    <div id="go-scores"></div>
+  </div>
+
+</div><!-- #main -->
+
+<script src="/bluff/player.js"></script>
+</body>
+</html>
