@@ -427,7 +427,9 @@ async def test_bluff_voting_broadcast_includes_round_and_question_fields():
     await game.start()
 
     await game.handle_action("pid0", "submit_lie", {"text": "a flying elephant"})
-    await game.handle_action("pid1", "submit_lie", {"text": "seventeen dancing hamsters"})
+    await game.handle_action(
+        "pid1", "submit_lie", {"text": "seventeen dancing hamsters"}
+    )
 
     voting_msgs = [m for m in messages if m["type"] == "bluff_voting"]
     assert len(voting_msgs) == 1
