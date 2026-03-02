@@ -68,8 +68,6 @@ ignore = [
     "S311",    # standard-pseudo-random-generators (game mechanics need randomness)
     "ANN401",  # dynamically-typed-expression (Any is needed in game state dicts)
     "PLR2004", # magic-value-comparison (game logic uses numeric game constants)
-    "BLE001",  # blind-exception-catch (intentional for WebSocket disconnect handling)
-    "S110",    # try-except-pass (intentional for WebSocket disconnect handling)
     "RUF002",  # docstring-ambiguous-unicode (intentional: em-dashes and symbols in game text)
     "RUF003",  # comment-ambiguous-unicode (same reason)
     "PLC0415", # import-outside-toplevel (needed to avoid circular imports)
