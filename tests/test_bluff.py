@@ -415,6 +415,29 @@ async def test_submit_lie_transitions_to_voting():
 
 
 @pytest.mark.anyio
+async def test_bluff_voting_broadcast_includes_round_and_question_fields():
+    """bluff_voting message must include round_num, question_num, total_questions."""
+    messages: list[dict] = []
+
+    async def capture(msg, target=None):
+        messages.append(msg)
+
+    players = make_players("Alice", "Bob")
+    game = BluffGame("TST", players, capture)
+    await game.start()
+
+    await game.handle_action("pid0", "submit_lie", {"text": "a flying elephant"})
+    await game.handle_action("pid1", "submit_lie", {"text": "seventeen dancing hamsters"})
+
+    voting_msgs = [m for m in messages if m["type"] == "bluff_voting"]
+    assert len(voting_msgs) == 1
+    data = voting_msgs[0]["data"]
+    assert data["round_num"] == 1
+    assert data["question_num"] == 1
+    assert data["total_questions"] == 3  # QUESTIONS_PER_ROUND = 3 for rounds 1 and 2
+
+
+@pytest.mark.anyio
 async def test_voting_choices_include_truth_and_lies():
     players = make_players("Alice", "Bob")
     game = make_game(players)
