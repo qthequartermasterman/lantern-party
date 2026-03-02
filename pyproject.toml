@@ -57,7 +57,7 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    # pydocstyle convention conflicts (Google style uses D211/D212)
+    # pydocstyle convention conflicts: ignore D203/D213 (Google style uses D211/D212)
     "D203",    # one-blank-line-before-class
     "D213",    # multi-line-summary-second-line
     # Formatter-incompatible rules
