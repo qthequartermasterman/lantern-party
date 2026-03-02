@@ -1,4 +1,5 @@
 """Pytest configuration and global hooks for the test suite."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -25,7 +26,9 @@ def pytest_collection_finish(session: pytest.Session) -> None:
         # item.fspath is the path to the test file
         test_filename = Path(str(item.fspath)).name
         for slug in game_slugs:
-            if test_filename == f"test_{slug}.py" or test_filename.startswith(f"test_{slug}_"):
+            if test_filename == f"test_{slug}.py" or test_filename.startswith(
+                f"test_{slug}_"
+            ):
                 covered.add(slug)
 
     missing = sorted(set(game_slugs) - covered)
