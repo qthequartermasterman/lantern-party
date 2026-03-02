@@ -32,7 +32,9 @@ jobs:
         run: uv sync --all-groups
 
       - name: Lint
-        run: uv run ruff check backend/ tests/
+        run: |
+          uv run ruff check backend/ tests/
+          uv run ruff format --check backend/ tests/
 
       - name: Type check
         run: uv run pyrefly check
