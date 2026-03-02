@@ -48,7 +48,6 @@ token = { env = "GH_TOKEN" }
 [tool.pyrefly]
 project-includes = [
     "**/*.py*",
-    "**/*.ipynb",
 ]
 
 [tool.ruff]
