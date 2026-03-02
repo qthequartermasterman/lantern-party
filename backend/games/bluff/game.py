@@ -481,6 +481,9 @@ class BluffGame(BaseGame):
         voting_data = {
             "prompt": self.current_question["prompt"],
             "category": self.current_question.get("category", ""),
+            "round_num": self.round_num,
+            "question_num": self._question_idx_in_round,
+            "total_questions": self.total_questions_in_round,
             "choices": [
                 {"index": i, "text": t} for i, t in enumerate(self._choice_texts)
             ],
