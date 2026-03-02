@@ -10,28 +10,16 @@ from __future__ import annotations
 import asyncio
 import math
 import random
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from backend.games.base import BaseGame
+from backend.games.base import BaseGame, Broadcaster, Player
 from backend.games.lampoon.prompts import FINAL_PROMPTS, ROUND_PROMPTS
 from backend.party_manager import party_manager
 
 # ──────────────────────────────────────────────
 # Data structures
 # ──────────────────────────────────────────────
-
-
-@dataclass
-class Player:
-    """Player in a Lampoon game."""
-
-    id: str
-    name: str
-    score: int = 0
-    ready: bool = False
-    is_connected: bool = True
 
 
 @dataclass
@@ -150,8 +138,6 @@ def _score_final(votes_for_player: int, total_votes: int) -> int:
 # Game class
 # ──────────────────────────────────────────────
 
-Broadcaster = Callable[[dict[str, Any], str | None], Awaitable[None]]
-
 
 class LampoonGame(BaseGame):
     """Lampoon – the Lantern Party word-answer game.
@@ -172,9 +158,7 @@ class LampoonGame(BaseGame):
         broadcast: Broadcaster,
     ) -> None:
         """Initialise the game with a party code, player registry, and broadcast callable."""
-        self.party_code = party_code
-        self.players = players  # shared reference with Party
-        self.broadcast = broadcast
+        super().__init__(party_code, players, broadcast)
 
         self.phase: str = "lobby"
         self.round_num: int = 0  # 1 or 2 for regular rounds, 0 = lobby
@@ -197,10 +181,6 @@ class LampoonGame(BaseGame):
         self.final_answers: dict[str, str] = {}  # player_id → answer
         # final_votes[voter_id] = {player_id: num_votes}
         self.final_votes: dict[str, dict[str, int]] = {}
-
-        # timer task
-        self._timer_task: asyncio.Task | None = None
-        self._timer_seconds: int = 0
 
         # idempotency guard: tracks which matchup indices have already been finalized
         self._finalized_matchups: set[int] = set()
@@ -328,22 +308,6 @@ class LampoonGame(BaseGame):
 
     # ── Internal helpers ────────────────────────────────────────────────
 
-    def _active_players(self) -> list[Player]:
-        return [p for p in self.players.values() if p.is_connected]
-
-    def _active_player_count(self) -> int:
-        return len(self._active_players())
-
-    def _scores_list(self) -> list[dict[str, Any]]:
-        return sorted(
-            [
-                {"id": p.id, "name": p.name, "score": p.score}
-                for p in self.players.values()
-            ],
-            key=lambda x: x["score"],
-            reverse=True,
-        )
-
     def _current_matchup(self) -> Matchup | None:
         if 0 <= self.current_matchup_idx < len(self.matchups):
             return self.matchups[self.current_matchup_idx]
@@ -445,49 +409,6 @@ class LampoonGame(BaseGame):
                 },
             }
             await self.broadcast(msg, player_id)
-
-    async def _broadcast_game_state(self) -> None:
-        # Send host state
-        await self.broadcast(
-            {"type": "game_state", "data": self.get_host_state()}, "host"
-        )
-        # Send personalized state to each player
-        for pid in self.players:
-            await self.broadcast(
-                {"type": "game_state", "data": self.get_player_state(pid)}, pid
-            )
-
-    # ── Timer ────────────────────────────────────────────────────────────
-
-    async def _start_timer(
-        self,
-        seconds: int,
-        on_expire: Callable[[], Awaitable[None]],
-    ) -> None:
-        if self._timer_task and not self._timer_task.done():
-            self._timer_task.cancel()
-        self._timer_seconds = seconds
-        self._timer_task = asyncio.create_task(self._run_timer(seconds, on_expire))
-
-    async def _run_timer(
-        self,
-        seconds: int,
-        on_expire: Callable[[], Awaitable[None]],
-    ) -> None:
-        for remaining in range(seconds, -1, -1):
-            self._timer_seconds = remaining
-            await self.broadcast(
-                {"type": "timer", "data": {"seconds_remaining": remaining}}, None
-            )
-            if remaining == 0:
-                break
-            await asyncio.sleep(1)
-        await on_expire()
-
-    def _cancel_timer(self) -> None:
-        if self._timer_task and not self._timer_task.done():
-            self._timer_task.cancel()
-        self._timer_seconds = 0
 
     # ── Answering phase ──────────────────────────────────────────────────
 
