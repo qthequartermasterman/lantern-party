@@ -17,29 +17,11 @@ from __future__ import annotations
 import asyncio
 import difflib
 import random
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
 from typing import Any
 
-from backend.games.base import BaseGame
+from backend.games.base import BaseGame, Broadcaster, Player
 from backend.games.bluff.prompts import FINAL_PROMPTS, ROUND_PROMPTS
 from backend.party_manager import party_manager
-
-# ─────────────────────────────────────────────────────────────
-# Shared data model (re-exported so ws.py can import from here)
-# ─────────────────────────────────────────────────────────────
-
-
-@dataclass
-class Player:
-    """Player in a Bluff and Baffle game."""
-
-    id: str
-    name: str
-    score: int = 0
-    ready: bool = False
-    is_connected: bool = True
-
 
 # ─────────────────────────────────────────────────────────────
 # Constants
@@ -49,8 +31,6 @@ QUESTIONS_PER_ROUND = 3
 _ROUND_MULT = {1: 1, 2: 2, 3: 3}
 _REVEAL_INTERVAL_SECONDS = 3  # delay between each auto-revealed card
 _REVEAL_BUFFER_SECONDS = 33  # extra time after all cards appear for host to click Next
-
-Broadcaster = Callable[[dict[str, Any], str | None], Awaitable[None]]
 
 
 # ─────────────────────────────────────────────────────────────
@@ -146,9 +126,7 @@ class BluffGame(BaseGame):
         broadcast: Broadcaster,
     ) -> None:
         """Initialise the game with a party code, player registry, and broadcast callable."""
-        self.party_code = party_code
-        self.players = players
-        self.broadcast = broadcast
+        super().__init__(party_code, players, broadcast)
 
         self.phase: str = "lobby"
         self.round_num: int = 0
@@ -174,10 +152,6 @@ class BluffGame(BaseGame):
         self.likes: dict[int, list[str]] = {}
         # Cumulative likes received per player (liar's key is their player_id)
         self.total_likes: dict[str, int] = {}
-
-        # Timer
-        self._timer_task: asyncio.Task | None = None
-        self._timer_seconds: int = 0
 
     # ── Public interface ─────────────────────────────────────────────────
 
@@ -270,22 +244,6 @@ class BluffGame(BaseGame):
         return state
 
     # ── Internal helpers ─────────────────────────────────────────────────
-
-    def _active_players(self) -> list[Player]:
-        return [p for p in self.players.values() if p.is_connected]
-
-    def _active_player_count(self) -> int:
-        return len(self._active_players())
-
-    def _scores_list(self) -> list[dict[str, Any]]:
-        return sorted(
-            [
-                {"id": p.id, "name": p.name, "score": p.score}
-                for p in self.players.values()
-            ],
-            key=lambda x: x["score"],
-            reverse=True,
-        )
 
     def _thumbs_cup_winner(self) -> str | None:
         if not self.total_likes:
@@ -710,46 +668,3 @@ class BluffGame(BaseGame):
         await asyncio.sleep(10)
         await self.broadcast({"type": "party_ended", "data": {}}, None)
         party_manager.delete_party(self.party_code)
-
-    # ── Timer ────────────────────────────────────────────────────────────
-
-    async def _start_timer(
-        self,
-        seconds: int,
-        on_expire: Callable[[], Awaitable[None]],
-    ) -> None:
-        if self._timer_task and not self._timer_task.done():
-            self._timer_task.cancel()
-        self._timer_seconds = seconds
-        self._timer_task = asyncio.create_task(self._run_timer(seconds, on_expire))
-
-    async def _run_timer(
-        self,
-        seconds: int,
-        on_expire: Callable[[], Awaitable[None]],
-    ) -> None:
-        for remaining in range(seconds, -1, -1):
-            self._timer_seconds = remaining
-            await self.broadcast(
-                {"type": "timer", "data": {"seconds_remaining": remaining}}, None
-            )
-            if remaining == 0:
-                break
-            await asyncio.sleep(1)
-        await on_expire()
-
-    def _cancel_timer(self) -> None:
-        if self._timer_task and not self._timer_task.done():
-            self._timer_task.cancel()
-        self._timer_seconds = 0
-
-    # ── Broadcast helper ─────────────────────────────────────────────────
-
-    async def _broadcast_game_state(self) -> None:
-        await self.broadcast(
-            {"type": "game_state", "data": self.get_host_state()}, "host"
-        )
-        for pid in self.players:
-            await self.broadcast(
-                {"type": "game_state", "data": self.get_player_state(pid)}, pid
-            )
