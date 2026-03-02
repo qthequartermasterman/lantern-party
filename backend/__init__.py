@@ -1,0 +1,1 @@
+"""Lantern Party backend package."""

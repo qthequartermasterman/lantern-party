@@ -1,5 +1,5 @@
-"""
-50+ original prompts for Lampoon, plus final-round prompts.
+"""50+ original prompts for Lampoon, plus final-round prompts.
+
 All prompts are original content.
 """
 

@@ -9,10 +9,10 @@ description = "Open Source, phone-controlled browser party games for couch-frien
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.110.0",
-    "uvicorn[standard]>=0.27.0",
-    "websockets>=12.0",
-    "pydantic>=2.0.0",
+    "fastapi==0.134.0",
+    "websockets==16.0",
+    "pydantic==2.12.5",
+    "uvicorn[standard]==0.41.0",
 ]
 
 [project.scripts]
@@ -20,12 +20,14 @@ lantern-party = "backend.main:app"
 
 [dependency-groups]
 dev = [
-    "anyio>=4.12.1",
-    "httpx>=0.28.1",
-    "hypothesis>=6.0.0",
-    "pytest>=9.0.2",
-    "pytest-asyncio>=1.3.0",
-    "python-semantic-release>=10.0.0",
+    "anyio==4.12.1",
+    "httpx==0.28.1",
+    "hypothesis==6.151.9",
+    "pyrefly==0.54.0",
+    "pytest==9.0.2",
+    "pytest-asyncio==1.3.0",
+    "python-semantic-release==10.5.3",
+    "ruff==0.15.4",
 ]
 
 [tool.pytest.ini_options]
@@ -42,3 +44,50 @@ build_command = "uv build"
 
 [tool.semantic_release.remote]
 token = { env = "GH_TOKEN" }
+
+[tool.pyrefly]
+project-includes = [
+    "**/*.py*",
+]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    # pydocstyle convention conflicts: ignore D203/D213 (Google style uses D211/D212)
+    "D203",    # one-blank-line-before-class
+    "D213",    # multi-line-summary-second-line
+    # Formatter-incompatible rules
+    "COM812",  # trailing-comma-missing
+    "ISC001",  # single-line-implicit-string-concatenation
+    # Project-specific pragmatic ignores
+    "CPY001",  # missing-copyright-notice (no copyright policy)
+    "S311",    # standard-pseudo-random-generators (game mechanics need randomness)
+    "ANN401",  # dynamically-typed-expression (Any is needed in game state dicts)
+    "PLR2004", # magic-value-comparison (game logic uses numeric game constants)
+    "RUF002",  # docstring-ambiguous-unicode (intentional: em-dashes and symbols in game text)
+    "RUF003",  # comment-ambiguous-unicode (same reason)
+    "PLC0415", # import-outside-toplevel (needed to avoid circular imports)
+    "ERA001",  # commented-out-code (intentional section dividers)
+    "E501",    # line-too-long (formatter handles this)
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "S101",    # assert (standard in pytest)
+    "SLF001",  # private-member-access (testing game internals)
+    "PLR2004", # magic-value-comparison (common in test assertions)
+    "ANN",     # type annotations (not required in tests)
+    "D",       # docstrings (not required in test files)
+    "PLC2701", # private-name-imports (importing private functions for testing)
+    "PLR6301", # method-could-be-static (pytest methods are instance methods by convention)
+    "RUF029",  # async-without-await (some pytest-anyio tests need async keyword)
+    "ARG001",  # unused-function-argument
+    "ARG002",  # unused-method-argument
+    "F401",    # unused-imports
+]

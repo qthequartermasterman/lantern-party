@@ -1,38 +1,42 @@
-"""
-WebSocket router – handles real-time connections for host and players.
-"""
+"""WebSocket router – handles real-time connections for host and players."""
+
 from __future__ import annotations
 
+import contextlib
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from backend.games.base import BaseGame
 from backend.games.bluff.game import BluffGame
 from backend.games.lampoon.game import LampoonGame, Player
 from backend.party_manager import party_manager
+
+if TYPE_CHECKING:
+    from backend.games.base import BaseGame
 
 router = APIRouter()
 
 
 async def _send(ws: WebSocket, message: dict[str, Any]) -> None:
-    try:
+    with contextlib.suppress(Exception):
         await ws.send_text(json.dumps(message))
-    except Exception:
-        pass
 
 
 # ──────────────────────────────────────────────────────────────────────
 # Host connection
 # ──────────────────────────────────────────────────────────────────────
 
+
 @router.websocket("/ws/{party_code}/host")
 async def host_ws(websocket: WebSocket, party_code: str) -> None:
+    """Accept and manage the host WebSocket connection for a party."""
     party = party_manager.get_party(party_code)
     if not party:
         await websocket.accept()
-        await _send(websocket, {"type": "error", "data": {"message": "Party not found"}})
+        await _send(
+            websocket, {"type": "error", "data": {"message": "Party not found"}}
+        )
         await websocket.close()
         return
 
@@ -108,14 +112,16 @@ async def _handle_host_message(
 # Player connection
 # ──────────────────────────────────────────────────────────────────────
 
+
 @router.websocket("/ws/{party_code}/player/{player_id}")
-async def player_ws(
-    websocket: WebSocket, party_code: str, player_id: str
-) -> None:
+async def player_ws(websocket: WebSocket, party_code: str, player_id: str) -> None:
+    """Accept and manage a player WebSocket connection for a party."""
     party = party_manager.get_party(party_code)
     if not party:
         await websocket.accept()
-        await _send(websocket, {"type": "error", "data": {"message": "Party not found"}})
+        await _send(
+            websocket, {"type": "error", "data": {"message": "Party not found"}}
+        )
         await websocket.close()
         return
 
@@ -148,7 +154,9 @@ async def player_ws(
                 continue
             action_type: str = msg.get("type", "")
             data: dict[str, Any] = msg.get("data", {})
-            await _handle_player_message(party_code, player_id, action_type, data, websocket)
+            await _handle_player_message(
+                party_code, player_id, action_type, data, websocket
+            )
     except WebSocketDisconnect:
         _on_player_disconnect(party, player_id)
 
@@ -221,6 +229,7 @@ async def _handle_player_message(
 # ──────────────────────────────────────────────────────────────────────
 # Helpers
 # ──────────────────────────────────────────────────────────────────────
+
 
 def _lobby_data(party: Any) -> dict[str, Any]:
     return {
