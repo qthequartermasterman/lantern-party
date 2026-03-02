@@ -6,6 +6,7 @@ Each prompt entry has:
   category – display category
   lies     – list of plausible fake answers for auto-fill
 """
+
 from __future__ import annotations
 
 import json

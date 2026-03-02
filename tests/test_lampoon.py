@@ -1,6 +1,7 @@
 """
 Tests for the Lampoon game logic and HTTP API.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -25,6 +26,7 @@ from backend.party_manager import PartyManager, party_manager
 # Helpers
 # ──────────────────────────────────────────────────────────────────────
 
+
 def make_players(*names: str) -> dict[str, Player]:
     return {f"pid{i}": Player(id=f"pid{i}", name=name) for i, name in enumerate(names)}
 
@@ -45,8 +47,11 @@ def make_game(players: dict[str, Player]) -> LampoonGame:
 # Unit: scoring
 # ──────────────────────────────────────────────────────────────────────
 
+
 class TestScoreMatchup:
-    def _matchup(self, answer_a="hello", answer_b="world", votes_a=0, votes_b=0) -> Matchup:
+    def _matchup(
+        self, answer_a="hello", answer_b="world", votes_a=0, votes_b=0
+    ) -> Matchup:
         m = Matchup(prompt="?", player_a_id="pa", player_b_id="pb")
         m.answer_a = answer_a
         m.answer_b = answer_b
@@ -144,6 +149,7 @@ class TestScoreFinal:
 # Unit: PartyManager
 # ──────────────────────────────────────────────────────────────────────
 
+
 class TestPartyManager:
     def test_create_and_get(self):
         mgr = PartyManager()
@@ -176,6 +182,7 @@ class TestPartyManager:
 # ──────────────────────────────────────────────────────────────────────
 # Unit: LampoonGame prompt assignment
 # ──────────────────────────────────────────────────────────────────────
+
 
 class TestPromptAssignment:
     def test_each_player_gets_two_prompts(self):
@@ -211,6 +218,7 @@ class TestPromptAssignment:
 # Integration: HTTP API
 # ──────────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def anyio_backend():
     return "asyncio"
@@ -218,7 +226,9 @@ def anyio_backend():
 
 @pytest.mark.anyio
 async def test_create_party():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         resp = await client.post("/api/party", json={"game_name": "lampoon"})
     assert resp.status_code == 200
     body = resp.json()
@@ -229,7 +239,9 @@ async def test_create_party():
 
 @pytest.mark.anyio
 async def test_join_party():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         create_resp = await client.post("/api/party", json={"game_name": "lampoon"})
         code = create_resp.json()["code"]
         join_resp = await client.post(f"/api/party/{code}/join")
@@ -239,14 +251,18 @@ async def test_join_party():
 
 @pytest.mark.anyio
 async def test_join_nonexistent_party():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         resp = await client.post("/api/party/ZZZZ/join")
     assert resp.status_code == 404
 
 
 @pytest.mark.anyio
 async def test_index_page():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         resp = await client.get("/")
     assert resp.status_code == 200
     assert "Lantern Party" in resp.text
@@ -254,7 +270,9 @@ async def test_index_page():
 
 @pytest.mark.anyio
 async def test_host_page():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         resp = await client.post("/api/party", json={"game_name": "lampoon"})
         code = resp.json()["code"]
         page = await client.get(f"/host/{code}")
@@ -264,7 +282,9 @@ async def test_host_page():
 
 @pytest.mark.anyio
 async def test_player_page():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
         resp = await client.post("/api/party", json={"game_name": "lampoon"})
         code = resp.json()["code"]
         page = await client.get(f"/player/{code}")
@@ -274,6 +294,7 @@ async def test_player_page():
 # ──────────────────────────────────────────────────────────────────────
 # Async game logic tests
 # ──────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.anyio
 async def test_game_start_broadcasts():
@@ -309,7 +330,9 @@ async def test_submit_answer_advances_when_all_in():
     # Submit all answers
     for pid, assignments in game.prompt_assignments.items():
         for _, idx in assignments:
-            await game.handle_action(pid, "submit_answer", {"prompt_index": idx, "answer": "funny"})
+            await game.handle_action(
+                pid, "submit_answer", {"prompt_index": idx, "answer": "funny"}
+            )
 
     # Game should have moved to revealing (timer task is a background task,
     # so phase stays "revealing" until a vote or timer fires)
@@ -332,17 +355,20 @@ async def test_submit_vote():
     # Submit all answers
     for pid, assignments in game.prompt_assignments.items():
         for _, idx in assignments:
-            await game.handle_action(pid, "submit_answer", {"prompt_index": idx, "answer": "test"})
+            await game.handle_action(
+                pid, "submit_answer", {"prompt_index": idx, "answer": "test"}
+            )
 
     assert game.phase == "revealing"
     current = game._current_matchup()
     assert current is not None
 
     voter_id = next(
-        pid for pid in players
-        if pid not in (current.player_a_id, current.player_b_id)
+        pid for pid in players if pid not in (current.player_a_id, current.player_b_id)
     )
-    await game.handle_action(voter_id, "submit_vote", {"voted_for_id": current.player_a_id})
+    await game.handle_action(
+        voter_id, "submit_vote", {"voted_for_id": current.player_a_id}
+    )
 
     assert current.votes_a == 1
 
@@ -361,9 +387,7 @@ async def test_final_votes_must_sum_to_3():
     game.final_answers = dict.fromkeys(players, "answer")
 
     # Try to submit only 2 votes
-    await game.handle_action(
-        "pid0", "submit_final_votes", {"votes": {"pid1": 2}}
-    )
+    await game.handle_action("pid0", "submit_final_votes", {"votes": {"pid1": 2}})
     assert any(e["data"]["message"] == "You must cast exactly 3 votes." for e in errors)
 
 

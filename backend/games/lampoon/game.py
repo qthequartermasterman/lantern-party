@@ -4,6 +4,7 @@ State machine:
   lobby → answering (R1) → revealing (R1) → answering (R2) → revealing (R2)
         → final_answering → final_revealing → game_over
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -20,6 +21,7 @@ from backend.party_manager import party_manager
 # ──────────────────────────────────────────────
 # Data structures
 # ──────────────────────────────────────────────
+
 
 @dataclass
 class Player:
@@ -255,9 +257,7 @@ class LampoonGame(BaseGame):
                     "player_id": pid,
                     "name": self.players[pid].name,
                     "answer": ans,
-                    "votes": sum(
-                        v.get(pid, 0) for v in self.final_votes.values()
-                    ),
+                    "votes": sum(v.get(pid, 0) for v in self.final_votes.values()),
                 }
                 for pid, ans in self.final_answers.items()
                 if pid in self.players
@@ -284,7 +284,9 @@ class LampoonGame(BaseGame):
             for _p_text, p_idx in prompts:
                 if p_idx < len(self.matchups):
                     m = self.matchups[p_idx]
-                    if (m.player_a_id == player_id and m.answer_a) or (m.player_b_id == player_id and m.answer_b):
+                    if (m.player_a_id == player_id and m.answer_a) or (
+                        m.player_b_id == player_id and m.answer_b
+                    ):
                         submitted.append(p_idx)
             state["submitted"] = submitted
 
@@ -312,9 +314,7 @@ class LampoonGame(BaseGame):
                     "player_id": pid,
                     "name": self.players[pid].name,
                     "answer": ans,
-                    "votes": sum(
-                        v.get(pid, 0) for v in self.final_votes.values()
-                    ),
+                    "votes": sum(v.get(pid, 0) for v in self.final_votes.values()),
                 }
                 for pid, ans in self.final_answers.items()
                 if pid in self.players
@@ -336,7 +336,10 @@ class LampoonGame(BaseGame):
 
     def _scores_list(self) -> list[dict[str, Any]]:
         return sorted(
-            [{"id": p.id, "name": p.name, "score": p.score} for p in self.players.values()],
+            [
+                {"id": p.id, "name": p.name, "score": p.score}
+                for p in self.players.values()
+            ],
             key=lambda x: x["score"],
             reverse=True,
         )
@@ -346,7 +349,9 @@ class LampoonGame(BaseGame):
             return self.matchups[self.current_matchup_idx]
         return None
 
-    def _matchup_dict(self, m: Matchup, *, reveal_answers: bool = False) -> dict[str, Any]:
+    def _matchup_dict(
+        self, m: Matchup, *, reveal_answers: bool = False
+    ) -> dict[str, Any]:
         pa = self.players.get(m.player_a_id)
         pb = self.players.get(m.player_b_id)
         d: dict[str, Any] = {
@@ -396,14 +401,20 @@ class LampoonGame(BaseGame):
             # Avoid self-matchup
             if pa.id == pb.id:
                 pb = active[(i + 2) % n]
-            matchup_list.append(Matchup(prompt=prompt, player_a_id=pa.id, player_b_id=pb.id))
+            matchup_list.append(
+                Matchup(prompt=prompt, player_a_id=pa.id, player_b_id=pb.id)
+            )
 
         self.matchups = matchup_list
 
         # Build per-player prompt assignments
         for idx, m in enumerate(self.matchups):
-            self.prompt_assignments.setdefault(m.player_a_id, []).append((m.prompt, idx))
-            self.prompt_assignments.setdefault(m.player_b_id, []).append((m.prompt, idx))
+            self.prompt_assignments.setdefault(m.player_a_id, []).append(
+                (m.prompt, idx)
+            )
+            self.prompt_assignments.setdefault(m.player_b_id, []).append(
+                (m.prompt, idx)
+            )
 
         # Each player should have exactly 2 prompts; if a player appears only once
         # (small groups), duplicate to fill
@@ -456,9 +467,7 @@ class LampoonGame(BaseGame):
         if self._timer_task and not self._timer_task.done():
             self._timer_task.cancel()
         self._timer_seconds = seconds
-        self._timer_task = asyncio.create_task(
-            self._run_timer(seconds, on_expire)
-        )
+        self._timer_task = asyncio.create_task(self._run_timer(seconds, on_expire))
 
     async def _run_timer(
         self,
@@ -534,9 +543,7 @@ class LampoonGame(BaseGame):
         else:
             await self._start_timer(30, self._on_voting_timer_expire)
 
-    async def _handle_submit_vote(
-        self, player_id: str, data: dict[str, Any]
-    ) -> None:
+    async def _handle_submit_vote(self, player_id: str, data: dict[str, Any]) -> None:
         if self.phase != "revealing":
             return
         m = self._current_matchup()
@@ -671,9 +678,7 @@ class LampoonGame(BaseGame):
         if self.phase == "final_answering":
             await self._begin_final_revealing()
 
-    async def _handle_submit_answer(
-        self, player_id: str, data: dict[str, Any]
-    ) -> None:
+    async def _handle_submit_answer(self, player_id: str, data: dict[str, Any]) -> None:
         """Unified answer submission for both regular and final rounds."""
         if self.phase == "answering":
             await self._handle_regular_answer(player_id, data)
@@ -726,9 +731,7 @@ class LampoonGame(BaseGame):
             self._cancel_timer()
             await self._begin_revealing()
 
-    async def _handle_final_answer(
-        self, player_id: str, data: dict[str, Any]
-    ) -> None:
+    async def _handle_final_answer(self, player_id: str, data: dict[str, Any]) -> None:
         if player_id in self.final_answers:
             return
         answer: str = str(data.get("answer", "")).strip()
@@ -762,7 +765,9 @@ class LampoonGame(BaseGame):
                     "answers": [
                         {
                             "player_id": pid,
-                            "name": self.players[pid].name if pid in self.players else "?",
+                            "name": self.players[pid].name
+                            if pid in self.players
+                            else "?",
                             "answer": ans,
                         }
                         for pid, ans in self.final_answers.items()
@@ -805,7 +810,10 @@ class LampoonGame(BaseGame):
                 return
             if target_id == player_id:
                 await self.broadcast(
-                    {"type": "error", "data": {"message": "You cannot vote for yourself."}},
+                    {
+                        "type": "error",
+                        "data": {"message": "You cannot vote for yourself."},
+                    },
                     player_id,
                 )
                 return
@@ -819,7 +827,10 @@ class LampoonGame(BaseGame):
 
         if total != 3:
             await self.broadcast(
-                {"type": "error", "data": {"message": "You must cast exactly 3 votes."}},
+                {
+                    "type": "error",
+                    "data": {"message": "You must cast exactly 3 votes."},
+                },
                 player_id,
             )
             return
@@ -842,9 +853,7 @@ class LampoonGame(BaseGame):
 
     async def _finalize_final_round(self) -> None:
         # Tally final votes
-        total_votes = sum(
-            sum(v.values()) for v in self.final_votes.values()
-        )
+        total_votes = sum(sum(v.values()) for v in self.final_votes.values())
         vote_totals: dict[str, int] = {}
         for voter_votes in self.final_votes.values():
             for target_id, cnt in voter_votes.items():

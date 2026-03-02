@@ -1,4 +1,5 @@
 """Lantern Party – FastAPI application entry point."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -38,6 +39,7 @@ _KNOWN_GAMES = {"lampoon", "bluff"}
 # HTML page routes
 # ──────────────────────────────────────────────
 
+
 @app.get("/", include_in_schema=False)
 async def index() -> FileResponse:
     """Serve the lobby index page."""
@@ -71,6 +73,7 @@ async def player_page(party_code: str) -> FileResponse:
 # ──────────────────────────────────────────────
 # REST API
 # ──────────────────────────────────────────────
+
 
 class CreatePartyRequest(BaseModel):
     """Request body for creating a new party."""

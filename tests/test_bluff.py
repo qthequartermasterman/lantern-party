@@ -1,6 +1,7 @@
 """
 Tests for the Bluff and Baffle game logic and HTTP API.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -24,6 +25,7 @@ from backend.party_manager import PartyManager
 # Helpers
 # ──────────────────────────────────────────────────────────────────────
 
+
 def make_players(*names: str) -> dict[str, Player]:
     return {f"pid{i}": Player(id=f"pid{i}", name=name) for i, name in enumerate(names)}
 
@@ -39,6 +41,7 @@ def make_game(players: dict[str, Player]) -> BluffGame:
 # ──────────────────────────────────────────────────────────────────────
 # Unit: similarity check
 # ──────────────────────────────────────────────────────────────────────
+
 
 class TestIsTooSimilar:
     def test_exact_match(self):
@@ -59,7 +62,14 @@ class TestIsTooSimilar:
 
 # ── Hypothesis: property-based tests for similarity check ──────────────
 
-@given(text=st.text(min_size=1, max_size=40, alphabet=st.characters(whitelist_categories=("Lu", "Ll", "Nd", "Zs"))))
+
+@given(
+    text=st.text(
+        min_size=1,
+        max_size=40,
+        alphabet=st.characters(whitelist_categories=("Lu", "Ll", "Nd", "Zs")),
+    )
+)
 def test_truth_always_too_similar_to_itself(text: str) -> None:
     """Any non-empty string is too similar to itself."""
     assume(text.strip())
@@ -67,8 +77,16 @@ def test_truth_always_too_similar_to_itself(text: str) -> None:
 
 
 @given(
-    truth=st.text(min_size=3, max_size=20, alphabet=st.characters(whitelist_categories=("Lu", "Ll"))),
-    lie=st.text(min_size=3, max_size=20, alphabet=st.characters(whitelist_categories=("Lu", "Ll"))),
+    truth=st.text(
+        min_size=3,
+        max_size=20,
+        alphabet=st.characters(whitelist_categories=("Lu", "Ll")),
+    ),
+    lie=st.text(
+        min_size=3,
+        max_size=20,
+        alphabet=st.characters(whitelist_categories=("Lu", "Ll")),
+    ),
 )
 @settings(max_examples=200)
 def test_similarity_is_symmetric(truth: str, lie: str) -> None:
@@ -80,7 +98,11 @@ def test_similarity_is_symmetric(truth: str, lie: str) -> None:
 
 
 @given(
-    truth=st.text(min_size=5, max_size=30, alphabet=st.characters(whitelist_categories=("Lu", "Ll", "Zs"))),
+    truth=st.text(
+        min_size=5,
+        max_size=30,
+        alphabet=st.characters(whitelist_categories=("Lu", "Ll", "Zs")),
+    ),
 )
 @settings(max_examples=100)
 def test_very_different_strings_not_too_similar(truth: str) -> None:
@@ -95,6 +117,7 @@ def test_very_different_strings_not_too_similar(truth: str) -> None:
 # ──────────────────────────────────────────────────────────────────────
 # Unit: scoring
 # ──────────────────────────────────────────────────────────────────────
+
 
 class TestScoreQuestion:
     def _players(self, *ids: str) -> dict[str, Player]:
@@ -223,6 +246,7 @@ class TestScoreQuestion:
 
 # ── Hypothesis: property-based tests for scoring ──────────────────────
 
+
 @given(
     round_mult=st.integers(min_value=1, max_value=3),
     n_voters=st.integers(min_value=1, max_value=8),
@@ -251,7 +275,9 @@ def test_truth_points_scale_with_multiplier(round_mult: int, n_voters: int) -> N
     n_fooled=st.integers(min_value=1, max_value=6),
 )
 @settings(max_examples=100)
-def test_fooling_scales_with_multiplier_and_count(round_mult: int, n_fooled: int) -> None:
+def test_fooling_scales_with_multiplier_and_count(
+    round_mult: int, n_fooled: int
+) -> None:
     """Liar earns 500 * round_mult per person fooled."""
     pids = [f"p{i}" for i in range(n_fooled + 2)]
     players = {pid: Player(id=pid, name=pid) for pid in pids}
@@ -295,6 +321,7 @@ def test_scores_never_below_zero_property(starting_score: int) -> None:
 # ──────────────────────────────────────────────────────────────────────
 # Unit: BluffGame state
 # ──────────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def anyio_backend():
@@ -340,9 +367,7 @@ async def test_too_similar_rejected():
     assert game.current_question is not None
     truth = game.current_question["truth"]
 
-    await game.handle_action(
-        "pid0", "submit_lie", {"text": truth, "lie_for_me": False}
-    )
+    await game.handle_action("pid0", "submit_lie", {"text": truth, "lie_for_me": False})
     assert "pid0" not in game.lies
     assert any("already taken" in e["data"]["message"].lower() for e in errors)
 
@@ -361,11 +386,15 @@ async def test_too_similar_to_other_lie_rejected():
     await game.start()
 
     # pid0 submits a lie
-    await game.handle_action("pid0", "submit_lie", {"text": "some unique lie", "lie_for_me": False})
+    await game.handle_action(
+        "pid0", "submit_lie", {"text": "some unique lie", "lie_for_me": False}
+    )
     assert "pid0" in game.lies
 
     # pid1 submits the same lie text → should be rejected as "already taken"
-    await game.handle_action("pid1", "submit_lie", {"text": "some unique lie", "lie_for_me": False})
+    await game.handle_action(
+        "pid1", "submit_lie", {"text": "some unique lie", "lie_for_me": False}
+    )
     assert "pid1" not in game.lies
     assert any("already taken" in e["data"]["message"].lower() for e in errors)
 
@@ -378,7 +407,9 @@ async def test_submit_lie_transitions_to_voting():
     assert game.phase == "collecting_lies"
 
     await game.handle_action("pid0", "submit_lie", {"text": "a flying elephant"})
-    await game.handle_action("pid1", "submit_lie", {"text": "seventeen dancing hamsters"})
+    await game.handle_action(
+        "pid1", "submit_lie", {"text": "seventeen dancing hamsters"}
+    )
 
     assert game.phase == "voting"
 
@@ -390,7 +421,9 @@ async def test_voting_choices_include_truth_and_lies():
     await game.start()
 
     await game.handle_action("pid0", "submit_lie", {"text": "a flying elephant"})
-    await game.handle_action("pid1", "submit_lie", {"text": "seventeen dancing hamsters"})
+    await game.handle_action(
+        "pid1", "submit_lie", {"text": "seventeen dancing hamsters"}
+    )
 
     assert game.phase == "voting"
     assert "truth" in game._choice_keys
@@ -406,8 +439,12 @@ async def test_submit_vote_advances_when_all_in():
     await game.start()
 
     await game.handle_action("pid0", "submit_lie", {"text": "a flying elephant"})
-    await game.handle_action("pid1", "submit_lie", {"text": "seventeen dancing hamsters"})
-    await game.handle_action("pid2", "submit_lie", {"text": "the lost city of atlantis"})
+    await game.handle_action(
+        "pid1", "submit_lie", {"text": "seventeen dancing hamsters"}
+    )
+    await game.handle_action(
+        "pid2", "submit_lie", {"text": "the lost city of atlantis"}
+    )
     assert game.phase == "voting"
 
     truth_idx = game._choice_keys.index("truth")
@@ -431,8 +468,12 @@ async def test_cannot_vote_for_own_lie():
     await game.start()
 
     await game.handle_action("pid0", "submit_lie", {"text": "a flying elephant"})
-    await game.handle_action("pid1", "submit_lie", {"text": "seventeen dancing hamsters"})
-    await game.handle_action("pid2", "submit_lie", {"text": "the lost city of atlantis"})
+    await game.handle_action(
+        "pid1", "submit_lie", {"text": "seventeen dancing hamsters"}
+    )
+    await game.handle_action(
+        "pid2", "submit_lie", {"text": "the lost city of atlantis"}
+    )
 
     own_idx = game._choice_keys.index("pid0")
     await game.handle_action("pid0", "submit_vote", {"choice_index": own_idx})
@@ -492,8 +533,12 @@ async def test_like_during_revealing():
     await game.start()
 
     await game.handle_action("pid0", "submit_lie", {"text": "a flying elephant"})
-    await game.handle_action("pid1", "submit_lie", {"text": "seventeen dancing hamsters"})
-    await game.handle_action("pid2", "submit_lie", {"text": "the lost city of atlantis"})
+    await game.handle_action(
+        "pid1", "submit_lie", {"text": "seventeen dancing hamsters"}
+    )
+    await game.handle_action(
+        "pid2", "submit_lie", {"text": "the lost city of atlantis"}
+    )
 
     truth_idx = game._choice_keys.index("truth")
     for pid in ["pid0", "pid1", "pid2"]:
@@ -538,9 +583,12 @@ async def test_scores_not_below_zero():
 # Integration: HTTP API for Bluff and Baffle
 # ──────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.anyio
 async def test_create_bluff_party():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         resp = await c.post("/api/party", json={"game_name": "bluff"})
     assert resp.status_code == 200
     body = resp.json()
@@ -550,7 +598,9 @@ async def test_create_bluff_party():
 
 @pytest.mark.anyio
 async def test_join_bluff_party_returns_bluff_player_url():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         create = await c.post("/api/party", json={"game_name": "bluff"})
         code = create.json()["code"]
         join = await c.post(f"/api/party/{code}/join")
@@ -560,7 +610,9 @@ async def test_join_bluff_party_returns_bluff_player_url():
 
 @pytest.mark.anyio
 async def test_bluff_host_page():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         create = await c.post("/api/party", json={"game_name": "bluff"})
         code = create.json()["code"]
         resp = await c.get(f"/host/{code}")
@@ -572,7 +624,9 @@ async def test_bluff_host_page():
 
 @pytest.mark.anyio
 async def test_bluff_player_page():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         create = await c.post("/api/party", json={"game_name": "bluff"})
         code = create.json()["code"]
         resp = await c.get(f"/player/{code}")
@@ -584,7 +638,9 @@ async def test_bluff_player_page():
 @pytest.mark.anyio
 async def test_lampoon_party_host_url_uses_party_code():
     """Lampoon party host URL is /host/{code} with no query param."""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         resp = await c.post("/api/party", json={"game_name": "lampoon"})
     body = resp.json()
     assert body["host_url"] == f"/host/{body['code']}"
@@ -592,14 +648,18 @@ async def test_lampoon_party_host_url_uses_party_code():
 
 @pytest.mark.anyio
 async def test_unknown_game_returns_400():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         resp = await c.post("/api/party", json={"game_name": "unknown_game"})
     assert resp.status_code == 400
 
 
 @pytest.mark.anyio
 async def test_host_page_unknown_party_returns_404():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         resp = await c.get("/host/ZZZZ")
     assert resp.status_code == 404
 
