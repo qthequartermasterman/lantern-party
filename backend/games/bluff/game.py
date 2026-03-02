@@ -1,5 +1,4 @@
-"""
-Bluff and Baffle – Lantern Party bluffing trivia game.
+"""Bluff and Baffle – Lantern Party bluffing trivia game.
 
 State machine per game:
   lobby → collecting_lies → voting → revealing → [next question]
@@ -12,27 +11,29 @@ Scoring (all × round multiplier):
   • Voting for a game-provided lie: −500 pts
   Round multipliers: R1 = 1, R2 = 2, Final (R3) = 3
 """
+
 from __future__ import annotations
 
 import asyncio
 import difflib
 import random
-from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable, TYPE_CHECKING
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from typing import Any
 
 from backend.games.base import BaseGame
 from backend.games.bluff.prompts import FINAL_PROMPTS, ROUND_PROMPTS
 from backend.party_manager import party_manager
 
-if TYPE_CHECKING:
-    pass
-
 # ─────────────────────────────────────────────────────────────
 # Shared data model (re-exported so ws.py can import from here)
 # ─────────────────────────────────────────────────────────────
 
+
 @dataclass
 class Player:
+    """Player in a Bluff and Baffle game."""
+
     id: str
     name: str
     score: int = 0
@@ -46,8 +47,8 @@ class Player:
 
 QUESTIONS_PER_ROUND = 3
 _ROUND_MULT = {1: 1, 2: 2, 3: 3}
-_REVEAL_INTERVAL_SECONDS = 3   # delay between each auto-revealed card
-_REVEAL_BUFFER_SECONDS = 33    # extra time after all cards appear for host to click Next
+_REVEAL_INTERVAL_SECONDS = 3  # delay between each auto-revealed card
+_REVEAL_BUFFER_SECONDS = 33  # extra time after all cards appear for host to click Next
 
 Broadcaster = Callable[[dict[str, Any], str | None], Awaitable[None]]
 
@@ -55,6 +56,7 @@ Broadcaster = Callable[[dict[str, Any], str | None], Awaitable[None]]
 # ─────────────────────────────────────────────────────────────
 # Similarity helper
 # ─────────────────────────────────────────────────────────────
+
 
 def _is_too_similar(text: str, truth: str) -> bool:
     """Return True if *text* is too similar to *truth* to be accepted."""
@@ -70,7 +72,8 @@ def _is_too_similar(text: str, truth: str) -> bool:
 # Scoring
 # ─────────────────────────────────────────────────────────────
 
-def _score_question(
+
+def _score_question(  # noqa: C901, PLR0913
     choice_keys: list[str],
     votes: dict[str, int],
     game_provided: set[str],
@@ -78,8 +81,7 @@ def _score_question(
     round_mult: int,
     players: dict[str, Player],
 ) -> dict[str, int]:
-    """
-    Compute score deltas for one question.
+    """Compute score deltas for one question.
 
     choice_keys[i]  = "truth" | player_id  for the choice at index i.
     votes[voter_id] = choice_index the voter selected.
@@ -128,9 +130,9 @@ def _score_question(
 # Game class
 # ─────────────────────────────────────────────────────────────
 
+
 class BluffGame(BaseGame):
-    """
-    Bluff and Baffle – the Lantern Party bluffing trivia game.
+    """Bluff and Baffle – the Lantern Party bluffing trivia game.
 
     Three rounds (R1, R2, R3-final).  Each question the host displays a
     trivia fact with one word/phrase blanked out.  Players invent lies;
@@ -143,6 +145,7 @@ class BluffGame(BaseGame):
         players: dict[str, Player],
         broadcast: Broadcaster,
     ) -> None:
+        """Initialise the game with a party code, player registry, and broadcast callable."""
         self.party_code = party_code
         self.players = players
         self.broadcast = broadcast
@@ -158,13 +161,13 @@ class BluffGame(BaseGame):
         self.current_question: dict | None = None
 
         # Per-question state
-        self.lies: dict[str, str] = {}           # player_id → lie text
-        self.game_provided: set[str] = set()     # player_ids whose lie was generated
+        self.lies: dict[str, str] = {}  # player_id → lie text
+        self.game_provided: set[str] = set()  # player_ids whose lie was generated
         self.lie_for_me_players: set[str] = set()
         # Shuffled presentation
-        self._choice_keys: list[str] = []        # choice_keys[i] → "truth" | player_id
-        self._choice_texts: list[str] = []       # choice_texts[i] → display text
-        self.votes: dict[str, int] = {}          # player_id → choice index
+        self._choice_keys: list[str] = []  # choice_keys[i] → "truth" | player_id
+        self._choice_texts: list[str] = []  # choice_texts[i] → display text
+        self.votes: dict[str, int] = {}  # player_id → choice index
         self._question_finalized: bool = False
 
         # Likes: choice_index → list[player_id who liked it]
@@ -187,6 +190,7 @@ class BluffGame(BaseGame):
     async def handle_action(
         self, player_id: str, action_type: str, data: dict[str, Any]
     ) -> None:
+        """Dispatch an incoming player action to the appropriate handler."""
         handler = {
             "submit_lie": self._handle_submit_lie,
             "submit_vote": self._handle_submit_vote,
@@ -197,6 +201,7 @@ class BluffGame(BaseGame):
             await handler(player_id, data)
 
     def get_host_state(self) -> dict[str, Any]:
+        """Return the full game state dict to send to the host WebSocket."""
         state: dict[str, Any] = {
             "game": "bluff",
             "phase": self.phase,
@@ -226,6 +231,7 @@ class BluffGame(BaseGame):
         return state
 
     def get_player_state(self, player_id: str) -> dict[str, Any]:
+        """Return the personalised game state dict for a specific player."""
         state: dict[str, Any] = {
             "game": "bluff",
             "phase": self.phase,
@@ -244,8 +250,7 @@ class BluffGame(BaseGame):
             state["submitted_lie"] = player_id in self.lies
         if self.phase == "voting":
             state["choices"] = [
-                {"index": i, "text": t}
-                for i, t in enumerate(self._choice_texts)
+                {"index": i, "text": t} for i, t in enumerate(self._choice_texts)
             ]
             state["already_voted"] = player_id in self.votes
             # Players cannot vote for their own lie
@@ -257,9 +262,7 @@ class BluffGame(BaseGame):
         if self.phase == "revealing":
             state["reveal"] = self._build_reveal_data(include_truth=True)
             state["likes_given"] = [
-                idx
-                for idx, likers in self.likes.items()
-                if player_id in likers
+                idx for idx, likers in self.likes.items() if player_id in likers
             ]
         if self.phase == "game_over":
             state["final_scores"] = self._scores_list()
@@ -276,7 +279,10 @@ class BluffGame(BaseGame):
 
     def _scores_list(self) -> list[dict[str, Any]]:
         return sorted(
-            [{"id": p.id, "name": p.name, "score": p.score} for p in self.players.values()],
+            [
+                {"id": p.id, "name": p.name, "score": p.score}
+                for p in self.players.values()
+            ],
             key=lambda x: x["score"],
             reverse=True,
         )
@@ -353,9 +359,7 @@ class BluffGame(BaseGame):
 
     # ── Lie submission ───────────────────────────────────────────────────
 
-    async def _handle_submit_lie(
-        self, player_id: str, data: dict[str, Any]
-    ) -> None:
+    async def _handle_submit_lie(self, player_id: str, data: dict[str, Any]) -> None:
         if self.phase != "collecting_lies":
             return
         if player_id not in self.players:
@@ -383,7 +387,9 @@ class BluffGame(BaseGame):
                 await self.broadcast(
                     {
                         "type": "error",
-                        "data": {"message": "That answer is already taken! Try a different one."},
+                        "data": {
+                            "message": "That answer is already taken! Try a different one."
+                        },
                     },
                     player_id,
                 )
@@ -414,7 +420,9 @@ class BluffGame(BaseGame):
 
     def _generate_lie(self) -> str:
         """Return a contextual lie from the per-prompt lie bank, falling back to the prompt's lies list."""
-        truth = (self.current_question["truth"] if self.current_question else "").lower()
+        truth = (
+            self.current_question["truth"] if self.current_question else ""
+        ).lower()
         existing = {v.lower() for v in self.lies.values()}
         # Prefer per-prompt lies for contextual relevance
         per_prompt_lies: list[str] = (
@@ -428,12 +436,21 @@ class BluffGame(BaseGame):
             return random.choice(candidates)
         # Fallback: generate a generic plausible-sounding lie
         fallback = [
-            "The number seventeen", "A type of cheese", "The Moon", "Napoleon",
-            "1847", "Three times a year", "Belgium", "A golden retriever",
-            "The colour mauve", "Sir Francis Drake",
+            "The number seventeen",
+            "A type of cheese",
+            "The Moon",
+            "Napoleon",
+            "1847",
+            "Three times a year",
+            "Belgium",
+            "A golden retriever",
+            "The colour mauve",
+            "Sir Francis Drake",
         ]
-        fb_candidates = [f for f in fallback if f.lower() != truth and f.lower() not in existing]
-        return random.choice(fb_candidates if fb_candidates else fallback)
+        fb_candidates = [
+            f for f in fallback if f.lower() != truth and f.lower() not in existing
+        ]
+        return random.choice(fb_candidates or fallback)
 
     # ── Voting phase ─────────────────────────────────────────────────────
 
@@ -465,17 +482,14 @@ class BluffGame(BaseGame):
             "prompt": self.current_question["prompt"],
             "category": self.current_question.get("category", ""),
             "choices": [
-                {"index": i, "text": t}
-                for i, t in enumerate(self._choice_texts)
+                {"index": i, "text": t} for i, t in enumerate(self._choice_texts)
             ],
         }
         await self.broadcast({"type": "bluff_voting", "data": voting_data}, None)
         await self._broadcast_game_state()
         await self._start_timer(30, self._on_voting_expire)
 
-    async def _handle_submit_vote(
-        self, player_id: str, data: dict[str, Any]
-    ) -> None:
+    async def _handle_submit_vote(self, player_id: str, data: dict[str, Any]) -> None:
         if self.phase != "voting":
             return
         if player_id not in self.players:
@@ -492,7 +506,10 @@ class BluffGame(BaseGame):
         # Can't vote for your own lie
         if self._choice_keys[choice_index] == player_id:
             await self.broadcast(
-                {"type": "error", "data": {"message": "You can't vote for your own answer!"}},
+                {
+                    "type": "error",
+                    "data": {"message": "You can't vote for your own answer!"},
+                },
                 player_id,
             )
             return
@@ -547,7 +564,10 @@ class BluffGame(BaseGame):
         reveal_data["score_deltas"] = deltas
         await self.broadcast({"type": "bluff_reveal", "data": reveal_data}, None)
         await self._broadcast_game_state()
-        await self._start_timer(len(self._choice_keys) * _REVEAL_INTERVAL_SECONDS + _REVEAL_BUFFER_SECONDS, self._on_revealing_expire)
+        await self._start_timer(
+            len(self._choice_keys) * _REVEAL_INTERVAL_SECONDS + _REVEAL_BUFFER_SECONDS,
+            self._on_revealing_expire,
+        )
 
     def _build_reveal_data(self, *, include_truth: bool = False) -> dict[str, Any]:
         """Build the reveal payload for host and players."""
@@ -558,7 +578,9 @@ class BluffGame(BaseGame):
             (i for i, k in enumerate(self._choice_keys) if k == "truth"), None
         )
         choices_detail = []
-        for i, (key, text) in enumerate(zip(self._choice_keys, self._choice_texts)):
+        for i, (key, text) in enumerate(
+            zip(self._choice_keys, self._choice_texts, strict=False)
+        ):
             is_truth = key == "truth"
             vote_count = sum(1 for v in self.votes.values() if v == i)
             entry: dict[str, Any] = {
@@ -585,9 +607,7 @@ class BluffGame(BaseGame):
 
     # ── Likes ────────────────────────────────────────────────────────────
 
-    async def _handle_submit_like(
-        self, player_id: str, data: dict[str, Any]
-    ) -> None:
+    async def _handle_submit_like(self, player_id: str, data: dict[str, Any]) -> None:
         if self.phase != "revealing":
             return
         choice_index = data.get("choice_index")
@@ -598,7 +618,7 @@ class BluffGame(BaseGame):
 
         key = self._choice_keys[choice_index]
         # Can only like lies (not the truth, not your own lie)
-        if key == "truth" or key == player_id:
+        if key in ("truth", player_id):
             return
 
         likers = self.likes.setdefault(choice_index, [])
@@ -627,7 +647,7 @@ class BluffGame(BaseGame):
 
     # ── Host "next" ──────────────────────────────────────────────────────
 
-    async def _handle_next(self, player_id: str, data: dict[str, Any]) -> None:
+    async def _handle_next(self, player_id: str, data: dict[str, Any]) -> None:  # noqa: ARG002
         if player_id != "host":
             return
         if self.phase == "revealing":

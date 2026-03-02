@@ -1,18 +1,15 @@
-"""
-In-memory party storage and management.
-"""
+"""In-memory party storage and management."""
+
 from __future__ import annotations
 
+import contextlib
 import random
 import string
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from fastapi import WebSocket
-
 if TYPE_CHECKING:
-    from backend.games.base import BaseGame
-    from backend.games.lampoon.game import Player
+    from fastapi import WebSocket
 
 
 def _generate_code(existing: set[str]) -> str:
@@ -25,6 +22,8 @@ def _generate_code(existing: set[str]) -> str:
 
 @dataclass
 class Party:
+    """Active party holding game state and WebSocket connections."""
+
     code: str
     game_name: str = "lampoon"
     host_ws: WebSocket | None = None
@@ -38,8 +37,7 @@ class Party:
     async def broadcast(
         self, message: dict[str, Any], target: str | None = None
     ) -> None:
-        """
-        Send *message* (as JSON) to the appropriate connection(s).
+        """Send *message* (as JSON) to the appropriate connection(s).
 
         target=None      → host + all players
         target="host"    → host only
@@ -50,10 +48,8 @@ class Party:
         payload = json.dumps(message)
 
         async def _send(ws: WebSocket) -> None:
-            try:
+            with contextlib.suppress(Exception):
                 await ws.send_text(payload)
-            except Exception:
-                pass  # ignore disconnected sockets silently
 
         if target is None:
             if self.host_ws:
@@ -73,6 +69,7 @@ class PartyManager:
     """Singleton-style in-memory store for all active parties."""
 
     def __init__(self) -> None:
+        """Initialise with an empty party registry."""
         self._parties: dict[str, Party] = {}
 
     def create_party(self, game_name: str = "lampoon") -> Party:
@@ -83,12 +80,15 @@ class PartyManager:
         return party
 
     def get_party(self, code: str) -> Party | None:
+        """Return the party with *code*, or ``None`` if not found."""
         return self._parties.get(code.upper())
 
     def delete_party(self, code: str) -> None:
+        """Remove the party with *code* from the registry."""
         self._parties.pop(code.upper(), None)
 
     def all_codes(self) -> list[str]:
+        """Return all active party codes."""
         return list(self._parties.keys())
 
 
