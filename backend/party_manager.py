@@ -11,7 +11,6 @@ if TYPE_CHECKING:
     from fastapi import WebSocket
 
 
-
 def _generate_code(existing: set[str]) -> str:
     """Return a 4-letter uppercase code not already in *existing*."""
     while True:
