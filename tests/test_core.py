@@ -98,12 +98,12 @@ class TestPlayer:
     def test_ready_mutable(self):
         p = Player(id="p1", name="Alice")
         p.ready = True
-        assert p.ready is True
+        assert p.ready
 
     def test_is_connected_mutable(self):
         p = Player(id="p1", name="Alice")
         p.is_connected = False
-        assert p.is_connected is False
+        assert not p.is_connected
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -383,6 +383,7 @@ async def test_start_timer_cancels_previous_timer():
 
     await game._start_timer(100, expire_first)
     first_task = game._timer_task
+    assert first_task is not None
 
     # Start a new short timer immediately – should cancel the first
     await game._start_timer(0, expire_second)
