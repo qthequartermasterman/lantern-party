@@ -8,8 +8,9 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from backend.games.base import Player
 from backend.games.bluff.game import BluffGame
-from backend.games.lampoon.game import LampoonGame, Player
+from backend.games.lampoon.game import LampoonGame
 from backend.party_manager import party_manager
 
 if TYPE_CHECKING:
